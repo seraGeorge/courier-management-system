@@ -70,6 +70,7 @@ export async function POST(req: Request) {
       toAddress: result.data.toAddress,
       weight: result.data.weight,
       region: result.data.region,
+      status: result.data.status || PackageStatus.TO_BE_PICKED_UP,
     },
   });
 

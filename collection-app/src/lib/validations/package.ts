@@ -1,3 +1,4 @@
+import { PackageStatus } from "@/generated/prisma/browser";
 import { z } from "zod";
 
 export const CreatePackageSchema = z.object({
@@ -7,6 +8,7 @@ export const CreatePackageSchema = z.object({
   toAddress: z.string().min(1),
   weight: z.number().positive(),
   region: z.string().min(1),
+  status: z.enum(PackageStatus).optional(),
 });
 
 export type CreatePackageInput = z.infer<typeof CreatePackageSchema>;
