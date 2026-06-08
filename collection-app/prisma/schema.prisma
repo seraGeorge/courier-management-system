@@ -33,6 +33,8 @@ model Package {
   weight Float
 
   status PackageStatus @default(TO_BE_PICKED_UP)
+  delayReason String?
+  
   region String?
 
   createdAt DateTime @default(now())
