@@ -1,8 +1,46 @@
 import { prisma } from "@/lib/prisma";
 import { CreatePackageSchema } from "@/lib/validations/package";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { PackageStatus } from "@/generated/prisma/client";
 
-export function GET() {}
+export async function GET(req: NextRequest) {
+  const searchParams = req.nextUrl.searchParams;
+  const status = searchParams.get("status");
+  const region = searchParams.get("region");
+
+  const whereClause: {
+    status?: PackageStatus;
+    currentRegion?: string;
+  } = {};
+
+  if (status) {
+    if (Object.values(PackageStatus).includes(status as PackageStatus)) {
+      whereClause.status = status as PackageStatus;
+    } else {
+      return NextResponse.json(
+        { message: "Invalid status value", status: 400 },
+        {
+          status: 400,
+        },
+      );
+    }
+  }
+
+  if (region) {
+    whereClause.currentRegion = region;
+  }
+
+  const packages = await prisma.package.findMany({
+    where: whereClause,
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return NextResponse.json(packages, {
+    status: 200,
+  });
+}
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -10,11 +48,16 @@ export async function POST(req: Request) {
   const result = CreatePackageSchema.safeParse(body);
 
   if (!result.success) {
-    return NextResponse.json({
-      message: "Invalid request data",
-      errors: result.error?.flatten(),
-      status: 400,
-    });
+    return NextResponse.json(
+      {
+        message: "Invalid status value",
+        errors: result.error.flatten(),
+        status: 400,
+      },
+      {
+        status: 400,
+      },
+    );
   }
 
   const trackingId = crypto.randomUUID();
