@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PackageStatus {
+  TO_BE_PICKED_UP
+  PICKED_UP
+  IN_TRANSIT
+  DELAYED
+  DELIVERED
+}
+
+model Package {
+  id         String @id @default(uuid())
+  trackingId String @unique
+
+  senderName   String
+  receiverName String
+  fromAddress  String
+  toAddress    String
+
+  weight Float
+
+  status PackageStatus @default(TO_BE_PICKED_UP)
+  region String?
+
+  createdAt DateTime @default(now())
+  sale      Sale?
+}
+
+model Sale {
+  id        String   @id @default(uuid())
+  packageId String   @unique
+  amount    Float
+  createdAt DateTime @default(now())
+
+  package Package @relation(fields: [packageId], references: [id])
+}
