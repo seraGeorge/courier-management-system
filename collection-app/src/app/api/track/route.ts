@@ -22,14 +22,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { trackingId, captcha } = result.data;
+  const { trackingId, captchaVerified } = result.data;
   const pkg = await prisma.package.findUnique({
     where: {
       trackingId,
     },
   });
 
-  if (captcha !== "verified") {
+  if (!captchaVerified) {
     return NextResponse.json(
       {
         message: "Captcha verification failed",
