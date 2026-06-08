@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const body = await req.json();
 
   const result = CreatePackageSchema.safeParse(body);
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   if (!result.success) {
     return NextResponse.json(
       {
-        message: "Invalid status value",
+        message: "Invalid request data",
         errors: result.error.flatten(),
         status: 400,
       },
