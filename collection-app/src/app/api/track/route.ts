@@ -57,5 +57,6 @@ export async function POST(req: NextRequest) {
     trackingId: pkg.trackingId,
     status: pkg.status,
     region: pkg.region,
+    delayReason: pkg.delayReason,
   });
 }
