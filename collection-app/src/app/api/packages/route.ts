@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   const whereClause: {
     status?: PackageStatus;
-    currentRegion?: string;
+    region?: string;
   } = {};
 
   if (status) {
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (region) {
-    whereClause.currentRegion = region;
+    whereClause.region = region;
   }
 
   const packages = await prisma.package.findMany({
@@ -70,7 +70,6 @@ export async function POST(req: NextRequest) {
       toAddress: result.data.toAddress,
       weight: result.data.weight,
       region: result.data.region,
-      status: result.data.status || PackageStatus.TO_BE_PICKED_UP,
     },
   });
 
