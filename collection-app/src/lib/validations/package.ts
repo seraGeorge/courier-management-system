@@ -1,4 +1,3 @@
-import { PackageStatus } from "@/generated/prisma/browser";
 import { z } from "zod";
 
 export const CreatePackageSchema = z.object({

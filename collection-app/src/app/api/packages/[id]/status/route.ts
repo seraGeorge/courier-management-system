@@ -1,3 +1,5 @@
+import { PackageStatus } from "@/generated/prisma/enums";
+import { StatusMap } from "@/lib/constants/package-status";
 import { prisma } from "@/lib/prisma";
 import { UpdatePackageStatusSchema } from "@/lib/validations/update-package-status";
 import { NextRequest, NextResponse } from "next/server";
@@ -32,12 +34,13 @@ export async function PATCH(
     );
   }
 
+const packageStatus = StatusMap[result.data.status as keyof typeof StatusMap];
   const updatedPackage = await prisma.package.update({
     where: { id },
     data: {
-      status: result.data.status,
+      status: packageStatus,
       delayReason:
-        result.data.status === "DELAYED" ? result.data.delayReason : null,
+        packageStatus === PackageStatus.DELAYED ? result.data.delayReason : null,
     },
   });
   

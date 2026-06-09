@@ -1,14 +1,13 @@
-import { PackageStatus } from "@/generated/prisma/enums";
 import { z } from "zod";
 
 export const UpdatePackageStatusSchema = z
   .object({
-    status: z.enum(PackageStatus),
+    status: z.number().int().min(0).max(4),
     delayReason: z.string().optional(),
   })
   .refine(
     (data) =>
-      data.status !== "DELAYED" ||
+      data.status !== 3 ||
       (data.delayReason && data.delayReason.trim().length > 0),
     {
       message: "Delay reason is required when status is DELAYED",

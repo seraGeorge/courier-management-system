@@ -2,10 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { CreatePackageSchema } from "@/lib/validations/package";
 import { NextRequest, NextResponse } from "next/server";
 import { PackageStatus } from "@/generated/prisma/client";
+import { StatusMap } from "@/lib/constants/package-status";
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
-  const status = searchParams.get("status");
+  const statusParam = searchParams.get("status");
   const region = searchParams.get("region");
 
   const whereClause: {
@@ -13,9 +14,12 @@ export async function GET(req: NextRequest) {
     region?: string;
   } = {};
 
-  if (status) {
-    if (Object.values(PackageStatus).includes(status as PackageStatus)) {
-      whereClause.status = status as PackageStatus;
+  const statusNumber = statusParam ? Number(statusParam) : null;
+  const packageStatus = StatusMap[statusNumber as keyof typeof StatusMap];
+
+  if (statusNumber !== null) {
+    if (statusNumber in StatusMap) {
+      whereClause.status = packageStatus;
     } else {
       return NextResponse.json(
         { message: "Invalid status value", status: 400 },
