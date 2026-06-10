@@ -32,6 +32,7 @@ export const getPackages = async (statusParam?: number, region?: string) => {
   });
 };
 
+const calculateAmount = (weight: number) => weight * 50;
 export const createPackage = async (data: {
   senderName: string;
   receiverName: string;
@@ -41,8 +42,17 @@ export const createPackage = async (data: {
   region: string;
 }) => {
   return prisma.package.create({
-    data: { ...data, trackingId: crypto.randomUUID() },
-  });
+    data: {
+      ...data,
+      trackingId: crypto.randomUUID(),
+      sale: {
+        create: {
+          amount: calculateAmount(data.weight),
+        },
+      },
+    },
+    include: { sale: true },
+  }).catch(handlePrismaError);
 };
 
 export const updatePackageStatus = async (
