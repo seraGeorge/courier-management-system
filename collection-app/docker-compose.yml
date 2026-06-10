@@ -38,13 +38,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:3001
+        NEXT_PUBLIC_API_URL: http://localhost:5000
     container_name: courier_frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      API_URL: http://backend:3001
+      API_URL: http://backend:5000
     depends_on:
       - backend
 
