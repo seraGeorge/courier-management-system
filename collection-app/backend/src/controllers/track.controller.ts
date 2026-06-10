@@ -53,15 +53,14 @@ export const track = async (req: Request, res: Response) => {
   }
 
   return res.status(200).json(
-    buildResponse(
-      200,
-      "Package retrieved successfully",
-      {
-        trackingId: pkg.trackingId,
-        status: pkg.status,
-        region: pkg.region,
-        delayReason: pkg.delayReason,
-      },
-    ),
+    buildResponse(200, "Package retrieved successfully", {
+      trackingId: pkg.trackingId,
+      status: pkg.status,
+      region: pkg.region,
+      delayReason: pkg.delayReason,
+      sale: pkg.sale
+        ? { amount: pkg.sale.amount, createdAt: pkg.sale.createdAt }
+        : null,
+    }),
   );
 };

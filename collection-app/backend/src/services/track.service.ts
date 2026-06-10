@@ -5,5 +5,6 @@ export const trackPackage = async (trackingId: string) => {
     where: {
       trackingId,
     },
+    include: { sale: true },
   });
 };
