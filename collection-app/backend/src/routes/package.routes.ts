@@ -1,5 +1,5 @@
+import { listPackages, addPackage, patchPackageStatus } from "@/controllers/package.controller";
 import { Router } from "express";
-import { addPackage, listPackages, patchPackageStatus } from "../controllers/package.controller.js";
 
 const router = Router();
 

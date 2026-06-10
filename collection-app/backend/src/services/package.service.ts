@@ -1,6 +1,6 @@
-import { PackageStatus, Prisma } from "../generated/prisma/client.js";
-import { prisma } from "../lib/prisma.js";
-import { StatusMap } from "@/lib/constants/package-status.js";
+import { prisma } from "@/lib/prisma";
+import { PackageStatus, Prisma } from "@/generated/prisma/client";
+import { StatusMap } from "@/lib/constants/package-status";
 
 const handlePrismaError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

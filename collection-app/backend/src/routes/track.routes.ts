@@ -1,4 +1,4 @@
-import { track } from "@/controllers/track.controller.js";
+import { track } from "@/controllers/track.controller";
 import { Router } from "express";
 
 const router = Router();

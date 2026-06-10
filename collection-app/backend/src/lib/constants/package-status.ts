@@ -1,4 +1,4 @@
-import { PackageStatus } from "@/generated/prisma/enums.js";
+import { PackageStatus } from "@/generated/prisma/client";
 
 export const StatusMap = {
   0: PackageStatus.TO_BE_PICKED_UP,

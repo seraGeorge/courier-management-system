@@ -1,4 +1,4 @@
-import { getDashboard } from "@/controllers/dashboard.controller.js";
+import { getDashboard } from "@/controllers/dashboard.controller";
 import { Router } from "express";
 
 const router = Router();

@@ -1,7 +1,7 @@
+import { trackPackage } from "@/services/track.service";
+import { buildResponse } from "@/utils/response";
+import { TrackPackageSchema } from "@/validations/track";
 import { type Request, type Response } from "express";
-import { TrackPackageSchema } from "../validations/track.js";
-import { buildResponse } from "@/utils/response.js";
-import { trackPackage } from "@/services/track.service.js";
 
 export const track = async (req: Request, res: Response) => {
   const result = TrackPackageSchema.safeParse(req.body);

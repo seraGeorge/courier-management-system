@@ -1,4 +1,4 @@
-import type { ApiResponse, FieldErrors } from "@/types/response.js";
+import { ApiResponse } from "@/types/response";
 
 export const buildResponse = <T>(
   status: number,

@@ -1,12 +1,8 @@
+import { getPackages, createPackage, updatePackageStatus } from "@/services/package.service";
+import { buildResponse } from "@/utils/response";
+import { CreatePackageSchema } from "@/validations/package";
+import { UpdatePackageStatusSchema } from "@/validations/update-package-status";
 import { type Request, type Response } from "express";
-import {
-  createPackage,
-  getPackages,
-  updatePackageStatus,
-} from "../services/package.service.js";
-import { CreatePackageSchema } from "@/validations/package.js";
-import { buildResponse } from "@/utils/response.js";
-import { UpdatePackageStatusSchema } from "@/validations/update-package-status.js";
 
 export const listPackages = async (req: Request, res: Response) => {
   try {

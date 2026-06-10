@@ -1,7 +1,7 @@
 import { Router } from "express";
-import packageRoutes from "./package.routes.js";
-import dashboardRoutes from "./dashboard.routes.js";
-import trackRoutes from "./track.routes.js";
+import dashboardRoutes from "./dashboard.routes";
+import packageRoutes from "./package.routes";
+import trackRoutes from "./track.routes";
 
 const router = Router();
 
