@@ -1,0 +1,17 @@
+{
+  "name": "courier-collection",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "cd backend && npm install && npx prisma migrate deploy && npx prisma db seed",
+  "forwardPorts": [3000, 5000, 5432],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "prisma.prisma",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}
