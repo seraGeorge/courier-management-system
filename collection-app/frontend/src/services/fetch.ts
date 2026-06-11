@@ -3,14 +3,26 @@ export interface FetchApiConfig {
   headers?: HeadersInit;
 }
 
+export type FieldErrors = Record<string, string[]>;
+export enum ErrorCode {
+  VALIDATION_ERROR = "VALIDATION_ERROR",
+  PACKAGE_NOT_FOUND = "PACKAGE_NOT_FOUND",
+  CAPTCHA_FAILED = "CAPTCHA_FAILED",
+  INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
+}
+export interface ApiError {
+  code: ErrorCode;
+  fieldErrors?: FieldErrors;
+};
+
 export interface ApiResponse<T> {
   success: boolean;
   status: number;
   message: string;
-  error: string | null;
-  fieldErrors: Record<string, string[]> | null;
   data: T | null;
-}
+  error: ApiError | null;
+};
+
 
 class FetchApi {
   constructor(private config: FetchApiConfig) {}
