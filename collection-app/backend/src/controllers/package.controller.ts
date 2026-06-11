@@ -19,23 +19,18 @@ export const listPackages = async (req: Request, res: Response) => {
       .json(buildResponse(200, "Packages retrieved successfully", packages));
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_STATUS") {
-      return res
-        .status(400)
-        .json(
-          buildResponse(400, "Invalid request data", null, "VALIDATION_ERROR"),
-        );
+      return res.status(400).json(
+        buildResponse(400, "Invalid request data", null, {
+          code: "VALIDATION_ERROR",
+        }),
+      );
     }
 
-    return res
-      .status(500)
-      .json(
-        buildResponse(
-          500,
-          "Internal Server Error",
-          null,
-          "INTERNAL_SERVER_ERROR",
-        ),
-      );
+    return res.status(500).json(
+      buildResponse(500, "Internal Server Error", null, {
+        code: "INTERNAL_SERVER_ERROR",
+      }),
+    );
   }
 };
 
@@ -43,17 +38,12 @@ export const addPackage = async (req: Request, res: Response) => {
   const result = CreatePackageSchema.safeParse(req.body);
 
   if (!result.success) {
-    return res
-      .status(400)
-      .json(
-        buildResponse(
-          400,
-          "Invalid request data",
-          null,
-          "VALIDATION_ERROR",
-          result.error.flatten().fieldErrors,
-        ),
-      );
+    return res.status(400).json(
+      buildResponse(400, "Invalid request data", null, {
+        code: "VALIDATION_ERROR",
+        fieldErrors: result.error.flatten().fieldErrors,
+      }),
+    );
   }
 
   const newPackage = await createPackage(result.data);
@@ -66,27 +56,22 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   if (!id) {
-    return res
-      .status(400)
-      .json(
-        buildResponse(400, "Package ID is required", null, "VALIDATION_ERROR"),
-      );
+    return res.status(400).json(
+      buildResponse(400, "Package ID is required", null, {
+        code: "VALIDATION_ERROR",
+      }),
+    );
   }
 
   const result = UpdatePackageStatusSchema.safeParse(req.body);
 
   if (!result.success) {
-    return res
-      .status(400)
-      .json(
-        buildResponse(
-          400,
-          "Invalid request data",
-          null,
-          "VALIDATION_ERROR",
-          result.error.flatten().fieldErrors,
-        ),
-      );
+    return res.status(400).json(
+      buildResponse(400, "Invalid request data", null, {
+        code: "VALIDATION_ERROR",
+        fieldErrors: result.error.flatten().fieldErrors,
+      }),
+    );
   }
 
   try {
@@ -108,19 +93,18 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
       return res
         .status(404)
         .json(
-          buildResponse(404, "Package not found", null, "PACKAGE_NOT_FOUND"),
+          buildResponse(404, "Package not found", null, {
+            code: "PACKAGE_NOT_FOUND",
+          }),
         );
     }
 
     return res
       .status(500)
       .json(
-        buildResponse(
-          500,
-          "Internal Server Error",
-          null,
-          "INTERNAL_SERVER_ERROR",
-        ),
+        buildResponse(500, "Internal Server Error", null, {
+          code: "INTERNAL_SERVER_ERROR",
+        }),
       );
   }
 };
