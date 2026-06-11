@@ -21,6 +21,15 @@ enum PackageStatus {
   DELIVERED
 }
 
+model Region {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  packages Package[]
+}
+
 model Package {
   id         String @id @default(uuid())
   trackingId String @unique
@@ -32,10 +41,11 @@ model Package {
 
   weight Float
 
-  status PackageStatus @default(TO_BE_PICKED_UP)
+  status      PackageStatus @default(TO_BE_PICKED_UP)
   delayReason String?
-  
-  region String?
+
+  regionCode String
+  region   Region @relation(fields: [regionCode], references: [code])
 
   createdAt DateTime @default(now())
   sale      Sale?
