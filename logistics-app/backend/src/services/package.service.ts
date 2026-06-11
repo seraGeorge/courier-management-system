@@ -1,6 +1,47 @@
+import { StatusMap } from "@/lib/package-status";
 import { prisma } from "@/lib/prisma";
-import { PackageStatus } from "@shared/enums/package-status";
 import { CreatePackageRequest } from "@shared/types/package";
+import { PackageStatus } from "@/generated/prisma/client";
+
+const resolveStatus = (statusParam: number): PackageStatus => {
+  const packageStatus = StatusMap[statusParam as keyof typeof StatusMap];
+  if (!packageStatus) throw new Error("INVALID_STATUS");
+  return packageStatus;
+};
+
+export const getPackages = async (
+  statusParam?: number,
+  regionCode?: string,
+) => {
+  const whereClause: { status?: PackageStatus; regionCode?: string } = {};
+
+  if (statusParam !== undefined) {
+    whereClause.status = resolveStatus(statusParam);
+  }
+
+  if (regionCode) {
+    whereClause.regionCode = regionCode;
+  }
+
+  return prisma.package.findMany({
+    where: whereClause,
+    orderBy: { createdAt: "desc" },
+    select: {
+      trackingId: true,
+      senderName: true,
+      receiverName: true,
+      fromAddress: true,
+      toAddress: true,
+      weight: true,
+      status: true,
+      delayReason: true,
+      createdAt: true,
+      region: {
+        select: { code: true, name: true },
+      },
+    },
+  });
+};
 
 export const createPackage = async (data: CreatePackageRequest) => {
   const region = await prisma.region.findUnique({
