@@ -1,11 +1,18 @@
-import DashboardPageContent from "@/components/pages/dashboard/DashboardPageContent";
 import { Suspense } from "react";
+import DashboardPageContent from "@/components/pages/dashboard/DashboardPageContent";
 
 export default function DashboardPage() {
   return (
-    <div className="p-8 space-y-8">
-      <h1 className="text-3xl font-bold">Courier Dashboard</h1>
-      <Suspense fallback={<div>Loading...</div>}>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Overview of all packages in the system
+        </p>
+      </div>
+      <Suspense
+        fallback={<div className="text-sm text-gray-400">Loading...</div>}
+      >
         <DashboardPageContent />
       </Suspense>
     </div>

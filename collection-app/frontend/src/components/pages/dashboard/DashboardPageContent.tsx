@@ -7,23 +7,29 @@ export default async function DashboardPageContent() {
   const dashboard = response.data;
 
   if (!dashboard) {
-    return <div>Failed to load dashboard</div>;
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl px-6 py-4 text-sm text-red-600">
+        Failed to load dashboard data.
+      </div>
+    );
   }
 
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <DashboardCard
           title="Pending Packages"
           count={dashboard.pendingPackages.count}
         />
         <DashboardCard
-          title="In Transit"
+          title="Actively Moving"
           count={dashboard.activePackages.count}
+          variant="active"
         />
         <DashboardCard
           title="Delayed Packages"
           count={dashboard.delayedPackages.count}
+          variant="delayed"
         />
       </div>
       <PackageSection
@@ -39,6 +45,6 @@ export default async function DashboardPageContent() {
         packages={dashboard.delayedPackages.packages}
         showDelayReason
       />
-    </>
+    </div>
   );
 }
