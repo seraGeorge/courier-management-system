@@ -1,4 +1,8 @@
-import { getPackages, createPackage, updatePackageStatus } from "@/services/package.service";
+import {
+  getPackages,
+  createPackage,
+  updatePackageStatus,
+} from "@/services/package.service";
 import { buildResponse } from "@/utils/response";
 import { CreatePackageSchema } from "@/validations/package";
 import { UpdatePackageStatusSchema } from "@/validations/update-package-status";
@@ -7,8 +11,7 @@ import { type Request, type Response } from "express";
 export const listPackages = async (req: Request, res: Response) => {
   try {
     const status = req.query.status ? Number(req.query.status) : undefined;
-    const region = req.query.region as string | undefined;
-
+    const region = req.query.regionCode as string | undefined;
     const packages = await getPackages(status, region);
 
     res

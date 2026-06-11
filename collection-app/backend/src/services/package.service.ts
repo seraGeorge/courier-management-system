@@ -15,20 +15,37 @@ const resolveStatus = (statusParam: number): PackageStatus => {
   return packageStatus;
 };
 
-export const getPackages = async (statusParam?: number, region?: string) => {
-  const whereClause: { status?: PackageStatus; region?: string } = {};
+export const getPackages = async (
+  statusParam?: number,
+  regionCode?: string,
+) => {
+  const whereClause: { status?: PackageStatus; regionCode?: string } = {};
 
   if (statusParam !== undefined) {
     whereClause.status = resolveStatus(statusParam);
   }
 
-  if (region) {
-    whereClause.region = region;
+  if (regionCode) {
+    whereClause.regionCode = regionCode;
   }
 
   return prisma.package.findMany({
     where: whereClause,
     orderBy: { createdAt: "desc" },
+    select: {
+      trackingId: true,
+      senderName: true,
+      receiverName: true,
+      fromAddress: true,
+      toAddress: true,
+      weight: true,
+      status: true,
+      delayReason: true,
+      createdAt: true,
+      region: {
+        select: { code: true, name: true },
+      },
+    },
   });
 };
 
@@ -39,20 +56,35 @@ export const createPackage = async (data: {
   fromAddress: string;
   toAddress: string;
   weight: number;
-  region: string;
+  regionCode: string;
 }) => {
-  return prisma.package.create({
-    data: {
-      ...data,
-      trackingId: crypto.randomUUID(),
-      sale: {
-        create: {
-          amount: calculateAmount(data.weight),
+  const region = await prisma.region.findUnique({
+    where: { code: data.regionCode },
+  });
+
+  if (!region) throw new Error("INVALID_REGION");
+
+  const { regionCode, ...rest } = data;
+
+  return prisma.package
+    .create({
+      data: {
+        ...data,
+        trackingId: crypto.randomUUID(),
+        sale: {
+          create: {
+            amount: calculateAmount(data.weight),
+          },
         },
       },
-    },
-    include: { sale: true },
-  }).catch(handlePrismaError);
+      include: {
+        sale: true,
+        region: {
+          select: { code: true, name: true },
+        },
+      },
+    })
+    .catch(handlePrismaError);
 };
 
 export const updatePackageStatus = async (

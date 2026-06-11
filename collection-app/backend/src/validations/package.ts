@@ -6,7 +6,7 @@ export const CreatePackageSchema = z.object({
   fromAddress: z.string().min(1),
   toAddress: z.string().min(1),
   weight: z.number().positive(),
-  region: z.string().min(1),
+  regionCode: z.string().min(1),
 });
 
 export type CreatePackageInput = z.infer<typeof CreatePackageSchema>;
