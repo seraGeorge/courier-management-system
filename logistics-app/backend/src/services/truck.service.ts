@@ -83,3 +83,27 @@ export const loadBagToTruck = async (data: LoadBagToTruckRequest) => {
     return truckBag;
   });
 };
+
+export const getTruckDetailsByTruckNumber = async (truckNumber: string) => {
+  return prisma.truck.findUnique({
+    where: {
+      truckNumber,
+    },
+    select: {
+      truckNumber: true,
+      status: true,
+      createdAt: true,
+      truckBags: {
+        select: {
+          bag: {
+            select: {
+              bagNumber: true,
+              status: true,
+              createdAt: true,
+            },
+          },
+        },
+      },
+    },
+  });
+};
