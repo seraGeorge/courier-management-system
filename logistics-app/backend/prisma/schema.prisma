@@ -113,6 +113,8 @@ model TruckBag {
   loadedAt DateTime @default(now())
 
   @@id([truckId, bagId])
+  // prevent loading same bags multiple times 
+  @@unique([bagId])
 }
 
 model PackageStatusHistory {

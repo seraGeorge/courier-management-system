@@ -1,6 +1,6 @@
 import { StatusMap } from "@/lib/package-status";
 import { prisma } from "@/lib/prisma";
-import { CreatePackageRequest } from "@shared/types/package";
+import { CreatePackageRequest } from "@shared/types";
 import { PackageStatus } from "@/generated/prisma/client";
 
 const resolveStatus = (statusParam: number): PackageStatus => {
@@ -66,3 +66,4 @@ export const createPackage = async (data: CreatePackageRequest) => {
 
   return packageData;
 };
+
