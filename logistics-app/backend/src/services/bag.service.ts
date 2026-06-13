@@ -1,3 +1,4 @@
+import { BagStatus } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import { PackageStatus } from "@shared/enums";
 import { AssignPackageToBagRequest } from "@shared/types/bag";
@@ -65,7 +66,7 @@ export const getBags = async () => {
   });
 };
 
-export const getBagDetailsByNumber = async(bagNumber:string)=>{
+export const getBagDetailsByNumber = async (bagNumber: string) => {
   return prisma.bag.findUnique({
     where: {
       bagNumber,
@@ -85,4 +86,32 @@ export const getBagDetailsByNumber = async(bagNumber:string)=>{
       },
     },
   });
-}
+};
+
+export const sealBagByBagNumber = async (bagNumber: string) => {
+  const bag = await prisma.bag.findUnique({
+    where: {
+      bagNumber,
+    },
+    include: {
+      packages: true,
+    },
+  });
+
+  if (!bag) {
+    throw new Error("BAG_NOT_FOUND");
+  }
+
+  if (bag.packages.length === 0) {
+    throw new Error("EMPTY_BAG");
+  }
+
+  return prisma.bag.update({
+    where: {
+      id: bag.id,
+    },
+    data: {
+      status: BagStatus.SEALED,
+    },
+  });
+};

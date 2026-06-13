@@ -2,9 +2,10 @@ import {
   createBag,
   getBagDetailsByNumber,
   getBags,
+  sealBagByBagNumber,
 } from "@/services/bag.service";
 import { buildResponse } from "@/utils/response";
-import { AssignPackageToBagSchema } from "@/validations/bag";
+import { AssignPackageToBagSchema, SealBagSchema } from "@/validations/bag";
 import type { Request, Response } from "express";
 import { assignPackageToBag } from "@/services/bag.service";
 
@@ -51,12 +52,47 @@ export const getBagDetails = async (req: Request, res: Response) => {
   try {
     const { bagNumber } = req.params;
     const bag = await getBagDetailsByNumber(bagNumber as string);
+    if (!bag) {
+      return res.status(404).json(
+        buildResponse(404, "Bag not found", null, {
+          code: "BAG_NOT_FOUND",
+        }),
+      );
+    }
+
     return res
       .status(200)
       .json(buildResponse(200, "Bag details retrieved successfully", bag));
   } catch (error) {
     return res.status(500).json(
       buildResponse(500, "Failed to retrieve bag details", null, {
+        code: "INTERNAL_SERVER_ERROR",
+      }),
+    );
+  }
+};
+
+export const sealBag = async (req: Request, res: Response) => {
+  const result = SealBagSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json(
+      buildResponse(400, "Invalid request data", null, {
+        code: "VALIDATION_ERROR",
+        fieldErrors: result.error.flatten().fieldErrors,
+      }),
+    );
+  }
+
+  try {
+    const { bagNumber } = result.data;
+    const bag = await sealBagByBagNumber(bagNumber as string);
+    return res
+      .status(200)
+      .json(buildResponse(200, "Bag sealed successfully", bag));
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json(
+      buildResponse(500, "Failed to seal bag", null, {
         code: "INTERNAL_SERVER_ERROR",
       }),
     );

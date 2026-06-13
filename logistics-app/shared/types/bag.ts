@@ -9,3 +9,7 @@ export interface AssignPackageToBagRequest {
   trackingId: string;
   bagNumber: string;
 }
+
+export interface SealBagRequest {
+  bagNumber: string;
+}
