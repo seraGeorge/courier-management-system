@@ -1,4 +1,5 @@
-import { PackageStatus } from "../enums/package-status";
+import { PackageStatus } from "../enums";
+
 export interface CreatePackageRequest {
   trackingId: string;
   senderName: string;
@@ -23,7 +24,10 @@ export interface PackageResponse {
 
   status: PackageStatus;
 
-  regionCode: string;
+  region: {
+    code: string;
+    name: string;
+  };
 
   bagId?: string | null;
 
