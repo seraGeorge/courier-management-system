@@ -29,6 +29,7 @@ enum BagStatus {
   OPEN
   SEALED
   IN_TRANSIT
+  ARRIVED
   DELAYED
 }
 

@@ -1,19 +1,20 @@
 "use client";
 
+import { BagStatus } from "@shared/enums/bag";
 import { BagResponse } from "@shared/types/bag";
 
 const STATUS_STYLES: Record<
-  string,
+  BagStatus,
   { bg: string; text: string; label: string }
 > = {
   OPEN: { bg: "bg-gray-100", text: "text-gray-700", label: "Open" },
   SEALED: { bg: "bg-blue-50", text: "text-blue-700", label: "Sealed" },
-  LOADED: { bg: "bg-blue-50", text: "text-blue-700", label: "Loaded" },
-  DELIVERED: { bg: "bg-blue-50", text: "text-blue-700", label: "Delivered" },
+  IN_TRANSIT: { bg: "bg-blue-50", text: "text-blue-700", label: "In Transit" },
+  ARRIVED: { bg: "bg-blue-50", text: "text-blue-700", label: "Arrived" },
   DELAYED: { bg: "bg-red-50", text: "text-red-600", label: "Delayed" },
 };
 
-function StatusPill({ status }: { status: string }) {
+function StatusPill({ status }: { status: BagStatus }) {
   const s = STATUS_STYLES[status] ?? {
     bg: "bg-gray-100",
     text: "text-gray-600",

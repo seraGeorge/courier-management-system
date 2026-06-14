@@ -1,7 +1,8 @@
+import { BagStatus } from "../enums";
 
 export interface BagResponse {
   bagNumber: string;
-  status: string;
+  status: BagStatus;
   createdAt: Date;
   _count?: {
     packages: number;
