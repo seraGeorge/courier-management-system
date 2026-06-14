@@ -9,3 +9,8 @@ export const AssignPackageToBagSchema = z.object({
 export const SealBagSchema = z.object({
   bagNumber: z.string().min(1),
 });
+
+export const DelayBagSchema = z.object({
+  bagNumber: z.string().min(1),
+  delayReason: z.string().min(1),
+});

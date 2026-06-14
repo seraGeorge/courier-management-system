@@ -63,8 +63,6 @@ model Package {
 
   status PackageStatus @default(TO_BE_PICKED_UP)
 
-  delayReason String?
-
   regionCode String
   region     Region @relation(fields: [regionCode], references: [code])
 
@@ -83,6 +81,8 @@ model Bag {
   bagNumber String @unique
 
   status BagStatus @default(OPEN)
+
+  delayReason String?
 
   packages Package[]
 

@@ -115,3 +115,35 @@ export const sealBagByBagNumber = async (bagNumber: string) => {
     },
   });
 };
+
+export const delayBagByNumber = async (data: {
+  bagNumber: string;
+  delayReason: string;
+}) => {
+  const { bagNumber, delayReason } = data;
+  const bag = await prisma.bag.findUnique({
+    where: {
+      bagNumber,
+    },
+    include: {
+      packages: true,
+    },
+  });
+
+  if (!bag) {
+    throw new Error("BAG_NOT_FOUND");
+  }
+  if (bag.packages.length === 0) {
+    throw new Error("EMPTY_BAG");
+  }
+
+  return prisma.bag.update({
+    where: {
+      id: bag.id,
+    },
+    data: {
+      status: BagStatus.DELAYED,
+      delayReason: delayReason,
+    },
+  });
+};

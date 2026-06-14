@@ -1,11 +1,16 @@
 import {
   createBag,
+  delayBagByNumber,
   getBagDetailsByNumber,
   getBags,
   sealBagByBagNumber,
 } from "@/services/bag.service";
 import { buildResponse } from "@/utils/response";
-import { AssignPackageToBagSchema, SealBagSchema } from "@/validations/bag";
+import {
+  AssignPackageToBagSchema,
+  DelayBagSchema,
+  SealBagSchema,
+} from "@/validations/bag";
 import type { Request, Response } from "express";
 import { assignPackageToBag } from "@/services/bag.service";
 
@@ -93,6 +98,32 @@ export const sealBag = async (req: Request, res: Response) => {
     console.error(error);
     return res.status(500).json(
       buildResponse(500, "Failed to seal bag", null, {
+        code: "INTERNAL_SERVER_ERROR",
+      }),
+    );
+  }
+};
+
+export const delayBag = async (req: Request, res: Response) => {
+  const result = DelayBagSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json(
+      buildResponse(400, "Invalid request data", null, {
+        code: "VALIDATION_ERROR",
+        fieldErrors: result.error.flatten().fieldErrors,
+      }),
+    );
+  }
+
+  try {
+    const bag = await delayBagByNumber(result.data);
+    return res
+      .status(200)
+      .json(buildResponse(200, "Bag delayed successfully", bag));
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json(
+      buildResponse(500, "Failed to delay bag", null, {
         code: "INTERNAL_SERVER_ERROR",
       }),
     );
