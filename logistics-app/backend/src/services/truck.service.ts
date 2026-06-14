@@ -1,4 +1,8 @@
-import { BagStatus, TruckStatus } from "@/generated/prisma/browser";
+import {
+  BagStatus,
+  PackageStatus,
+  TruckStatus,
+} from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import { LoadBagToTruckRequest } from "@shared/types";
 
@@ -105,5 +109,70 @@ export const getTruckDetailsByTruckNumber = async (truckNumber: string) => {
         },
       },
     },
+  });
+};
+
+export const getArrivedTruckDetailsByTruckNumber = async (
+  truckNumber: string,
+) => {
+  const truck = await prisma.truck.findUnique({
+    where: {
+      truckNumber,
+    },
+    include: {
+      truckBags: { include: { bag: { include: { packages: true } } } },
+    },
+  });
+
+  if (!truck) {
+    throw new Error("TRUCK_NOT_FOUND");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    // Update Truck status to ARRIVED
+    await tx.truck.update({
+      where: {
+        id: truck.id,
+      },
+      data: {
+        status: TruckStatus.ARRIVED,
+      },
+    });
+
+    for (const truckBag of truck.truckBags) {
+      // Update Bag status to OPEN
+      await tx.bag.update({
+        where: {
+          id: truckBag.bag.id,
+        },
+        data: {
+          status: BagStatus.ARRIVED,
+        },
+      });
+
+      // Update each package status to ARRIVED_AT_REGION and update package status history
+      for (const pkg of truckBag.bag.packages) {
+        await tx.package.update({
+          where: {
+            id: pkg.id,
+          },
+          data: {
+            status: PackageStatus.ARRIVED_AT_REGION,
+          },
+        });
+
+        await tx.packageStatusHistory.create({
+          data: {
+            packageId: pkg.id,
+            status: PackageStatus.ARRIVED_AT_REGION,
+          },
+        });
+      }
+    }
+
+    return {
+      truckNumber: truck.truckNumber,
+      status: TruckStatus.ARRIVED,
+    };
   });
 };
