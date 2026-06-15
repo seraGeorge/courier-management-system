@@ -176,3 +176,38 @@ export const getArrivedTruckDetailsByTruckNumber = async (
     };
   });
 };
+
+export const updatePackageStatusByTrackingId = async (
+  trackingId: string,
+  status: PackageStatus,
+) => {
+  const pkg = await prisma.package.findUnique({
+    where: {
+      trackingId,
+    },
+  });
+
+  if (!pkg) {
+    throw new Error("PACKAGE_NOT_FOUND");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updatedPackage = await tx.package.update({
+      where: {
+        trackingId,
+      },
+      data: {
+        status,
+      },
+    });
+
+    await tx.packageStatusHistory.create({
+      data: {
+        packageId: pkg.id,
+        status: status,
+      },
+    });
+
+    return updatedPackage;
+  });
+};
