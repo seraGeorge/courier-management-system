@@ -1,7 +1,7 @@
 import { StatusMap } from "@/lib/package-status";
 import { prisma } from "@/lib/prisma";
-import { CreatePackageRequest } from "@shared/types";
-import { PackageStatus } from "@/generated/prisma/client";
+import { CreatePackageRequest, UpdatePackageStatusRequest } from "@shared/types";
+import { PackageStatus, TruckStatus } from "@/generated/prisma/client";
 
 const resolveStatus = (statusParam: number): PackageStatus => {
   const packageStatus = StatusMap[statusParam as keyof typeof StatusMap];
@@ -56,14 +56,109 @@ export const createPackage = async (data: CreatePackageRequest) => {
   const packageData = await prisma.package.create({
     data: {
       ...data,
-      statusHistory:{
-        create:{
-          status: PackageStatus.TO_BE_PICKED_UP
-        }
-      }
+      statusHistory: {
+        create: {
+          status: PackageStatus.TO_BE_PICKED_UP,
+        },
+      },
     },
   });
 
   return packageData;
 };
 
+export const updatePackageStatusByTrackingId = async (
+  data: UpdatePackageStatusRequest,
+) => {
+  const pkg = await prisma.package.findUnique({
+    where: {
+      trackingId: data.trackingId,
+    },
+  });
+
+  if (!pkg) {
+    throw new Error("PACKAGE_NOT_FOUND");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updatedPackage = await tx.package.update({
+      where: {
+        trackingId: data.trackingId,
+      },
+      data: {
+        status: data.status,
+      },
+    });
+
+    await tx.packageStatusHistory.create({
+      data: {
+        packageId: pkg.id,
+        status: data.status,
+      },
+    });
+
+    return updatedPackage;
+  });
+};
+
+export const getLatestArrivalPackages = async () => {
+  const latestTruck = await prisma.truck.findFirst({
+    where: {
+      status: TruckStatus.ARRIVED,
+      arrivedAt: {
+        not: null,
+      },
+    },
+    orderBy: {
+      arrivedAt: "desc",
+    },
+    include: {
+      truckBags: {
+        include: {
+          bag: {
+            include: {
+              packages: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!latestTruck) {
+    return [];
+  }
+
+  return latestTruck.truckBags.flatMap((truckBag) => truckBag.bag.packages);
+};
+
+export const getLoadedPackages = async () => {
+  const truckBags = await prisma.truckBag.findMany({
+    include: {
+      truck: true,
+      bag: {
+        include: {
+          packages: {
+            include: {
+              region: {
+                select: {
+                  code: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return truckBags.flatMap((truckBag) =>
+    truckBag.bag.packages.map((pkg) => ({
+      ...pkg,
+      truckNumber: truckBag.truck.truckNumber,
+      truckStatus: truckBag.truck.status,
+      bagNumber: truckBag.bag.bagNumber,
+    })),
+  );
+};

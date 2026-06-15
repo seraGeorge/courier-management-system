@@ -2,8 +2,6 @@ import { prisma } from "@/lib/prisma";
 import {
   createTruck,
   getArrivedTruckDetailsByTruckNumber,
-  getLatestArrivalPackages,
-  getLoadedPackages,
   getTruckDetailsByTruckNumber,
   getTrucks,
   loadBagToTruck,
@@ -109,51 +107,6 @@ export const getArrivedTruckDetails = async (req: Request, res: Response) => {
   } catch (error) {
     return res.status(500).json(
       buildResponse(500, "Failed to retrieve truck details", null, {
-        code: "INTERNAL_SERVER_ERROR",
-      }),
-    );
-  }
-};
-
-export const listLatestArrivalPackages = async (
-  req: Request,
-  res: Response,
-) => {
-  try {
-    const packages = await getLatestArrivalPackages();
-
-    return res
-      .status(200)
-      .json(
-        buildResponse(
-          200,
-          "Latest arrival packages retrieved successfully",
-          packages,
-        ),
-      );
-  } catch (error) {
-    return res.status(500).json(
-      buildResponse(500, "Failed to retrieve latest arrival packages", null, {
-        code: "INTERNAL_SERVER_ERROR",
-      }),
-    );
-  }
-};
-
-export const listLoadedPackages = async (req: Request, res: Response) => {
-  try {
-    const packages = await getLoadedPackages();
-
-    return res
-      .status(200)
-      .json(
-        buildResponse(200, "Loaded packages retrieved successfully", packages),
-      );
-  } catch (error) {
-    console.error(error);
-
-    return res.status(500).json(
-      buildResponse(500, "Internal Server Error", null, {
         code: "INTERNAL_SERVER_ERROR",
       }),
     );
