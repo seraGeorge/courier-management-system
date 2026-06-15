@@ -207,3 +207,34 @@ export const getLatestArrivalPackages = async () => {
 
   return latestTruck.truckBags.flatMap((truckBag) => truckBag.bag.packages);
 };
+
+export const getLoadedPackages = async () => {
+  const truckBags = await prisma.truckBag.findMany({
+    include: {
+      truck: true,
+      bag: {
+        include: {
+          packages: {
+            include: {
+              region: {
+                select: {
+                  code: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return truckBags.flatMap((truckBag) =>
+    truckBag.bag.packages.map((pkg) => ({
+      ...pkg,
+      truckNumber: truckBag.truck.truckNumber,
+      truckStatus: truckBag.truck.status,
+      bagNumber: truckBag.bag.bagNumber,
+    })),
+  );
+};
