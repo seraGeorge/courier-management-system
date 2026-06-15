@@ -177,37 +177,33 @@ export const getArrivedTruckDetailsByTruckNumber = async (
   });
 };
 
-export const updatePackageStatusByTrackingId = async (
-  trackingId: string,
-  status: PackageStatus,
-) => {
-  const pkg = await prisma.package.findUnique({
+export const getLatestArrivalPackages = async () => {
+  const latestTruck = await prisma.truck.findFirst({
     where: {
-      trackingId,
+      status: TruckStatus.ARRIVED,
+      arrivedAt: {
+        not: null,
+      },
+    },
+    orderBy: {
+      arrivedAt: "desc",
+    },
+    include: {
+      truckBags: {
+        include: {
+          bag: {
+            include: {
+              packages: true,
+            },
+          },
+        },
+      },
     },
   });
 
-  if (!pkg) {
-    throw new Error("PACKAGE_NOT_FOUND");
+  if (!latestTruck) {
+    return [];
   }
 
-  return prisma.$transaction(async (tx) => {
-    const updatedPackage = await tx.package.update({
-      where: {
-        trackingId,
-      },
-      data: {
-        status,
-      },
-    });
-
-    await tx.packageStatusHistory.create({
-      data: {
-        packageId: pkg.id,
-        status: status,
-      },
-    });
-
-    return updatedPackage;
-  });
+  return latestTruck.truckBags.flatMap((truckBag) => truckBag.bag.packages);
 };

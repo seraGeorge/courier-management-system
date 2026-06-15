@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import {
   createTruck,
   getArrivedTruckDetailsByTruckNumber,
+  getLatestArrivalPackages,
   getTruckDetailsByTruckNumber,
   getTrucks,
   loadBagToTruck,
@@ -90,28 +91,50 @@ export const getTruckDetails = async (req: Request, res: Response) => {
 };
 
 export const getArrivedTruckDetails = async (req: Request, res: Response) => {
-
-    try {
-      const truckNumber = req.params.truckNumber as string;
-      const truck = await getArrivedTruckDetailsByTruckNumber(truckNumber);
-      if (!truck) {
-        return res.status(404).json(
-          buildResponse(404, "Truck not found", null, {
-            code: "TRUCK_NOT_FOUND",
-          }),
-        );
-      }
-
-      return res
-        .status(200)
-        .json(
-          buildResponse(200, "Truck details retrieved successfully", truck),
-        );
-    } catch (error) {
-      return res.status(500).json(
-        buildResponse(500, "Failed to retrieve truck details", null, {
-          code: "INTERNAL_SERVER_ERROR",
+  try {
+    const truckNumber = req.params.truckNumber as string;
+    const truck = await getArrivedTruckDetailsByTruckNumber(truckNumber);
+    if (!truck) {
+      return res.status(404).json(
+        buildResponse(404, "Truck not found", null, {
+          code: "TRUCK_NOT_FOUND",
         }),
       );
     }
+
+    return res
+      .status(200)
+      .json(buildResponse(200, "Truck details retrieved successfully", truck));
+  } catch (error) {
+    return res.status(500).json(
+      buildResponse(500, "Failed to retrieve truck details", null, {
+        code: "INTERNAL_SERVER_ERROR",
+      }),
+    );
+  }
+};
+
+export const listLatestArrivalPackages = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const packages = await getLatestArrivalPackages();
+
+    return res
+      .status(200)
+      .json(
+        buildResponse(
+          200,
+          "Latest arrival packages retrieved successfully",
+          packages,
+        ),
+      );
+  } catch (error) {
+    return res.status(500).json(
+      buildResponse(500, "Failed to retrieve latest arrival packages", null, {
+        code: "INTERNAL_SERVER_ERROR",
+      }),
+    );
+  }
 };
