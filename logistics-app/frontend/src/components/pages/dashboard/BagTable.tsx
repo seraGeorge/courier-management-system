@@ -3,12 +3,13 @@
 import { BagStatus } from "@shared/enums/bag";
 import { BagResponse } from "@shared/types/bag";
 
-const STATUS_STYLES: Record<
+export const STATUS_STYLES: Record<
   BagStatus,
   { bg: string; text: string; label: string }
 > = {
   OPEN: { bg: "bg-gray-100", text: "text-gray-700", label: "Open" },
   SEALED: { bg: "bg-blue-50", text: "text-blue-700", label: "Sealed" },
+  LOADED: { bg: "bg-blue-50", text: "text-blue-700", label: "Loaded" },
   IN_TRANSIT: { bg: "bg-blue-50", text: "text-blue-700", label: "In Transit" },
   ARRIVED: { bg: "bg-blue-50", text: "text-blue-700", label: "Arrived" },
   DELAYED: { bg: "bg-red-50", text: "text-red-600", label: "Delayed" },
