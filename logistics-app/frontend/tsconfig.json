@@ -2,7 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",
-    "target": "ES2017",
+    "target": "ES2020",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -23,7 +23,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@shared": ["../shared/index.ts"],
-      "@shared/*": ["../shared/*"]
+      "@shared/*": ["../shared/*.ts"]
     }
   },
   "references": [{ "path": "../shared/tsconfig.json" }],
