@@ -1,6 +1,8 @@
 import { StatusMap } from "@/lib/package-status";
 import { prisma } from "@/lib/prisma";
-import { CreatePackageRequest, UpdatePackageStatusRequest } from "@shared/types";
+import {
+  CreatePackageRequest,
+} from "@shared/types";
 import { PackageStatus, TruckStatus } from "@/generated/prisma/client";
 
 const resolveStatus = (statusParam: number): PackageStatus => {
@@ -34,7 +36,6 @@ export const getPackages = async (
       toAddress: true,
       weight: true,
       status: true,
-      delayReason: true,
       createdAt: true,
       region: {
         select: { code: true, name: true },
@@ -67,71 +68,6 @@ export const createPackage = async (data: CreatePackageRequest) => {
   return packageData;
 };
 
-export const updatePackageStatusByTrackingId = async (
-  data: UpdatePackageStatusRequest,
-) => {
-  const pkg = await prisma.package.findUnique({
-    where: {
-      trackingId: data.trackingId,
-    },
-  });
-
-  if (!pkg) {
-    throw new Error("PACKAGE_NOT_FOUND");
-  }
-
-  return prisma.$transaction(async (tx) => {
-    const updatedPackage = await tx.package.update({
-      where: {
-        trackingId: data.trackingId,
-      },
-      data: {
-        status: data.status,
-      },
-    });
-
-    await tx.packageStatusHistory.create({
-      data: {
-        packageId: pkg.id,
-        status: data.status,
-      },
-    });
-
-    return updatedPackage;
-  });
-};
-
-export const getLatestArrivalPackages = async () => {
-  const latestTruck = await prisma.truck.findFirst({
-    where: {
-      status: TruckStatus.ARRIVED,
-      arrivedAt: {
-        not: null,
-      },
-    },
-    orderBy: {
-      arrivedAt: "desc",
-    },
-    include: {
-      truckBags: {
-        include: {
-          bag: {
-            include: {
-              packages: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!latestTruck) {
-    return [];
-  }
-
-  return latestTruck.truckBags.flatMap((truckBag) => truckBag.bag.packages);
-};
-
 export const getLoadedPackages = async () => {
   const truckBags = await prisma.truckBag.findMany({
     include: {
@@ -161,4 +97,34 @@ export const getLoadedPackages = async () => {
       bagNumber: truckBag.bag.bagNumber,
     })),
   );
+};
+
+export const getStatusUpdatedPackage = async (
+  status: PackageStatus,
+  trackingId: string,
+) => {
+  const packageData = await prisma.package.findUnique({
+    where: {
+      trackingId,
+    },
+  });
+
+  if (!packageData) {
+    throw new Error("PACKAGE_NOT_FOUND");
+  }
+
+  const updatedPackageData = await prisma.package.update({
+    where: {
+      trackingId,
+    },
+    data: {
+      status,
+      statusHistory: {
+        create: {
+          status ,
+        },
+      },
+    },
+  });
+  return updatedPackageData;
 };
