@@ -17,6 +17,7 @@ enum PackageStatus {
   TO_BE_PICKED_UP
   PICKED_UP
   ADDED_TO_BAG
+  LOADED_ON_TRUCK
   EN_ROUTE
   ARRIVED_AT_REGION
   SCHEDULED_FOR_DELIVERY
@@ -28,6 +29,7 @@ enum PackageStatus {
 enum BagStatus {
   OPEN
   SEALED
+  LOADED
   IN_TRANSIT
   ARRIVED
   DELAYED
