@@ -37,7 +37,7 @@ const DashboardPageContent = () => {
       const [pkgRes, bagRes, activeTruckRes] = await Promise.all([
         getPackages(),
         getBags(),
-        getTrucks(["LOADED", "SCHEDULED","DELAYED"]),
+        getTrucks(["LOADED", "SCHEDULED","DELAYED", "DEPARTED"]),
       ]);
       setPackages(pkgRes.data);
       setBags(bagRes.data);
@@ -232,7 +232,7 @@ const DashboardPageContent = () => {
 
         {/* Section 4: Delayed */}
         <Section title="Delayed Packages" count={delayed.length}>
-          <PackageTable packages={delayed} />
+          <PackageTable packages={delayed} noActions />
         </Section>
       </div>
       {selectedPackage && (
