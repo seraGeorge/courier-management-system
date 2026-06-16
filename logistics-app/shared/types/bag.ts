@@ -1,4 +1,5 @@
 import { BagStatus } from "../enums";
+import { PackageResponse } from "./package";
 
 export interface BagResponse {
   bagNumber: string;
@@ -7,6 +8,7 @@ export interface BagResponse {
   _count?: {
     packages: number;
   };
+  packages?: Partial<PackageResponse>[];
 }
 
 export interface AssignPackageToBagRequest {

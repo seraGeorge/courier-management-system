@@ -5,3 +5,17 @@ export const getBags = async () => {
 
   return response.data;
 };
+
+export const sealBag = async (bagNumber: string) => {
+  const response = await api.post("/bags/seal", {
+    bagNumber,
+  });
+
+  return response.data;
+};
+
+export const createBag = async () => {
+  const response = await api.post("/bags");
+
+  return response.data;
+}
