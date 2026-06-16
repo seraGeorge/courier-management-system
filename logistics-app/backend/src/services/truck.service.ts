@@ -4,7 +4,7 @@ import {
   TruckStatus,
 } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
-import { LoadBagToTruckRequest } from "@shared/types";
+import { LoadBagToTruckRequest, TruckResponse } from "@shared/types";
 
 export const createTruck = async () => {
   return prisma.truck.create({
@@ -14,8 +14,13 @@ export const createTruck = async () => {
   });
 };
 
-export const getTrucks = async () => {
+export const getTrucks = async (status?: TruckStatus | TruckStatus[]) => {
   return prisma.truck.findMany({
+    where: status
+      ? {
+          status: Array.isArray(status) ? { in: status } : status,
+        }
+      : undefined,
     orderBy: {
       createdAt: "desc",
     },
@@ -23,15 +28,24 @@ export const getTrucks = async () => {
       truckNumber: true,
       status: true,
       createdAt: true,
-      _count: {
+      truckBags: {
         select: {
-          truckBags: true,
+          bag: {
+            select: {
+              bagNumber: true,
+              status: true,
+              packages: {
+                select: {
+                  trackingId: true,
+                },
+              },
+            },
+          },
         },
       },
     },
   });
 };
-
 export const loadBagToTruck = async (data: LoadBagToTruckRequest) => {
   const { truckNumber, bagNumber } = data;
 
@@ -59,6 +73,11 @@ export const loadBagToTruck = async (data: LoadBagToTruckRequest) => {
     throw new Error("BAG_NOT_SEALED");
   }
 
+  const packages = await prisma.package.findMany({
+    where: {
+      bagId: bag.id,
+    },
+  });
   return prisma.$transaction(async (tx) => {
     const truckBag = await tx.truckBag.create({
       data: {
@@ -72,8 +91,22 @@ export const loadBagToTruck = async (data: LoadBagToTruckRequest) => {
         id: bag.id,
       },
       data: {
-        status: BagStatus.IN_TRANSIT,
+        status: BagStatus.LOADED,
       },
+    });
+    await tx.package.updateMany({
+      where: {
+        bagId: bag.id,
+      },
+      data: {
+        status: PackageStatus.LOADED_ON_TRUCK,
+      },
+    });
+    await tx.packageStatusHistory.createMany({
+      data: packages.map((pkg) => ({
+        packageId: pkg.id,
+        status: PackageStatus.LOADED_ON_TRUCK,
+      })),
     });
     await tx.truck.update({
       where: {
@@ -174,5 +207,155 @@ export const getArrivedTruckDetailsByTruckNumber = async (
       truckNumber: truck.truckNumber,
       status: TruckStatus.ARRIVED,
     };
+  });
+};
+
+export const updateTruckStatus = async (
+  truckNumber: string,
+  status: TruckStatus,
+) => {
+  return prisma.$transaction(async (tx) => {
+    const truck = await tx.truck.findUnique({
+      where: {
+        truckNumber,
+      },
+      include: {
+        truckBags: {
+          select: {
+            bagId: true,
+          },
+        },
+      },
+    });
+
+    if (!truck) {
+      throw new Error("TRUCK_NOT_FOUND");
+    }
+
+    const bagIds = truck.truckBags.map((tb) => tb.bagId);
+
+    const packages = await tx.package.findMany({
+      where: {
+        bagId: {
+          in: bagIds,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    await tx.truck.update({
+      where: {
+        truckNumber,
+      },
+      data: {
+        status,
+      },
+    });
+
+    if (bagIds.length > 0) {
+      if (status === TruckStatus.ARRIVED) {
+        await tx.bag.updateMany({
+          where: {
+            id: {
+              in: bagIds,
+            },
+          },
+          data: {
+            status: BagStatus.ARRIVED,
+          },
+        });
+
+        await tx.package.updateMany({
+          where: {
+            bagId: {
+              in: bagIds,
+            },
+          },
+          data: {
+            status: PackageStatus.ARRIVED_AT_REGION,
+          },
+        });
+
+        await tx.packageStatusHistory.createMany({
+          data: packages.map((pkg) => ({
+            packageId: pkg.id,
+            status: PackageStatus.ARRIVED_AT_REGION,
+          })),
+        });
+      }
+
+      if (status === TruckStatus.DELAYED) {
+        await tx.bag.updateMany({
+          where: {
+            id: {
+              in: bagIds,
+            },
+          },
+          data: {
+            status: BagStatus.DELAYED,
+          },
+        });
+
+        await tx.package.updateMany({
+          where: {
+            bagId: {
+              in: bagIds,
+            },
+          },
+          data: {
+            status: PackageStatus.DELAYED,
+          },
+        });
+
+        await tx.packageStatusHistory.createMany({
+          data: packages.map((pkg) => ({
+            packageId: pkg.id,
+            status: PackageStatus.DELAYED,
+          })),
+        });
+      }
+
+      if (status === TruckStatus.DEPARTED) {
+        await tx.bag.updateMany({
+          where: {
+            id: {
+              in: bagIds,
+            },
+          },
+          data: {
+            status: BagStatus.IN_TRANSIT,
+          },
+        });
+
+        await tx.package.updateMany({
+          where: {
+            bagId: {
+              in: bagIds,
+            },
+          },
+          data: {
+            status: PackageStatus.EN_ROUTE,
+          },
+        });
+
+        await tx.packageStatusHistory.createMany({
+          data: packages.map((pkg) => ({
+            packageId: pkg.id,
+            status: PackageStatus.EN_ROUTE,
+          })),
+        });
+      }
+    }
+
+    return tx.truck.findUnique({
+      where: {
+        truckNumber,
+      },
+      include: {
+        truckBags: true,
+      },
+    });
   });
 };

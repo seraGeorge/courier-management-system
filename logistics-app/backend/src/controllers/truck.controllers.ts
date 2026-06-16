@@ -1,3 +1,4 @@
+import { TruckStatus } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import {
   createTruck,
@@ -5,9 +6,10 @@ import {
   getTruckDetailsByTruckNumber,
   getTrucks,
   loadBagToTruck,
+  updateTruckStatus,
 } from "@/services/truck.service";
 import { buildResponse } from "@/utils/response";
-import { LoadBagToTruck } from "@/validations/truck";
+import { LoadBagToTruck, UpdateTruckStatusSchema } from "@/validations/truck";
 import type { Request, Response } from "express";
 
 export const addTruck = async (req: Request, res: Response) => {
@@ -27,7 +29,16 @@ export const addTruck = async (req: Request, res: Response) => {
 
 export const listTrucks = async (req: Request, res: Response) => {
   try {
-    const trucks = await getTrucks();
+  const raw = req.query.status;
+
+  const status =
+    typeof raw === "string"
+      ? raw.includes(",")
+        ? (raw.split(",") as TruckStatus[])
+        : (raw as TruckStatus)
+      : undefined;
+
+    const trucks = await getTrucks(status);
     return res
       .status(201)
       .json(buildResponse(201, "Trucks retrieved successfully", trucks));
@@ -107,6 +118,41 @@ export const getArrivedTruckDetails = async (req: Request, res: Response) => {
   } catch (error) {
     return res.status(500).json(
       buildResponse(500, "Failed to retrieve truck details", null, {
+        code: "INTERNAL_SERVER_ERROR",
+      }),
+    );
+  }
+};
+
+export const updateTruckStatusController = async (
+  req: Request,
+  res: Response,
+) => {
+  const result = UpdateTruckStatusSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json(
+      buildResponse(400, "Invalid request data", null, {
+        code: "VALIDATION_ERROR",
+        fieldErrors: result.error.flatten().fieldErrors,
+      }),
+    );
+  }
+
+  try {
+    const { truckNumber } = req.params;
+
+    const truck = await updateTruckStatus(
+      truckNumber as string,
+      result.data.status,
+    );
+
+    return res
+      .status(200)
+      .json(buildResponse(200, "Truck status updated successfully", truck));
+  } catch (error) {
+    return res.status(500).json(
+      buildResponse(500, "Failed to update truck", null, {
         code: "INTERNAL_SERVER_ERROR",
       }),
     );
