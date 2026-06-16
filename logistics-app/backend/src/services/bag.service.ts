@@ -57,6 +57,14 @@ export const getBags = async () => {
       bagNumber: true,
       status: true,
       createdAt: true,
+      packages: {
+        select: {
+          trackingId: true,
+          senderName: true,
+          receiverName: true,
+          status: true,
+        },
+      },
       _count: {
         select: {
           packages: true,
