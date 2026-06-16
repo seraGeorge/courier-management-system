@@ -1,6 +1,6 @@
 "use client";
 
-import { PackageResponse } from "@shared/types";
+import { PackageResponse } from "@shared/types/package";
 
 const STATUS_STYLES: Record<
   string,
@@ -54,9 +54,17 @@ function StatusPill({ status }: { status: string }) {
 
 interface PackageTableProps {
   packages: PackageResponse[];
+  onAssign?: (pkg: PackageResponse) => void;
+  scheduleForDelivery?: (pkg: PackageResponse) => void;
+  noActions?: boolean;
 }
 
-export default function PackageTable({ packages }: PackageTableProps) {
+export default function PackageTable({
+  packages,
+  onAssign,
+  scheduleForDelivery,
+  noActions,
+}: PackageTableProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <table className="w-full text-sm border-collapse">
@@ -77,6 +85,11 @@ export default function PackageTable({ packages }: PackageTableProps) {
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">
               Status
             </th>
+            {!noActions && (
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">
+                Actions
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -108,6 +121,34 @@ export default function PackageTable({ packages }: PackageTableProps) {
                 <td className="px-4 py-3">
                   <StatusPill status={pkg.status} />
                 </td>
+                {!noActions && (
+                  <td className="px-4 py-3">
+                    {pkg.status != "ARRIVED_AT_REGION" && onAssign && (
+                      <button
+                        onClick={() => onAssign(pkg)}
+                        className="rounded-md bg-black text-white px-3 py-1 text-xs"
+                      >
+                        Assign To Bag
+                      </button>
+                    )}
+                    {pkg.status === "ARRIVED_AT_REGION" && (
+                      <div className="flex  gap-2">
+                        <button
+                          onClick={() => onAssign?.(pkg)}
+                          className="rounded-md bg-black text-white px-3 py-1 text-xs"
+                        >
+                          Reassign To Another Bag
+                        </button>
+                        <button
+                          onClick={() => scheduleForDelivery?.(pkg)}
+                          className="rounded-md bg-black text-white px-3 py-1 text-xs"
+                        >
+                          Schedule for Delivery
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                )}
               </tr>
             ))
           )}
