@@ -1,0 +1,46 @@
+services:
+  dev:
+    image: node:20
+
+    container_name: collection_dev
+
+    working_dir: /workspace
+
+    volumes:
+      - ../..:/workspace
+
+    command: sleep infinity
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/collection_db
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+
+    container_name: collection_dev_db
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: collection_db
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5  
+    ports:
+      - "5435:5432"
+
+    volumes:
+      - collection_dev_db_data:/var/lib/postgresql/data
+
+volumes:
+  collection_dev_db_data:
