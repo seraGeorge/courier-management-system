@@ -1,10 +1,21 @@
+"use client";
 import { getDashboard } from "@/services/dashboard";
 import DashboardCard from "./DashboardCard";
 import PackageSection from "./PackageSection";
+import { useEffect, useState } from "react";
+import { DashboardData } from "@/types/dashboard";
 
-export default async function DashboardPageContent() {
-  const response = await getDashboard();
-  const dashboard = response.data;
+export default function DashboardPageContent() {
+  const [dashboard, setDashboard] = useState<DashboardData>();
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      const response = await getDashboard();
+      setDashboard(response.data ?? undefined);
+    };
+
+    fetchDashboard();
+  }, []);
 
   if (!dashboard) {
     return (
