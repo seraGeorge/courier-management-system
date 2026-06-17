@@ -1,0 +1,46 @@
+services:
+  dev:
+    image: node:20
+
+    container_name: logistics_dev
+
+    working_dir: /workspace
+
+    volumes:
+      - ../..:/workspace
+
+    command: sleep infinity
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/logistics_db
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+
+    container_name: logistics_dev_db
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: logistics_db
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5  
+    ports:
+      - "5434:5432"
+
+    volumes:
+      - logistics_dev_db_data:/var/lib/postgresql/data
+
+volumes:
+  logistics_dev_db_data:
