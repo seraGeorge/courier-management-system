@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/app.ts",
+    "build": "tsc && tsc-alias",
     "migrate": "npx prisma migrate dev",
     "setup": "npx prisma migrate dev && npx prisma db seed"
   },
@@ -19,6 +20,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "pg": "^8.21.0",
+    "tsc-alias": "^1.8.17",
     "zod": "^4.4.3"
   },
   "devDependencies": {
