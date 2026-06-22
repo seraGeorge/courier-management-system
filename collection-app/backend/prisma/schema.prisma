@@ -60,3 +60,11 @@ model Sale {
 
   package Package @relation(fields: [packageId], references: [id])
 }
+
+model RawPackageUpdate {
+  id          String   @id @default(uuid())
+  trackingId  String
+  status      PackageStatus
+  receivedAt  DateTime @default(now())
+  processed   Boolean  @default(false)
+}
