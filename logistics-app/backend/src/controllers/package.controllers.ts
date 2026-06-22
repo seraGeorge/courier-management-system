@@ -39,22 +39,36 @@ export const listPackages = async (req: Request, res: Response) => {
     );
   }
 };
-export const addPackage = async (req: Request, res: Response) => {
-  const result = CreatePackageSchema.safeParse(req.body);
+export const receivePackageWebhook = async (req: Request, res: Response) => {
+    console.log("Webhook hit");
+    console.log(req.body);
 
-  if (!result.success) {
-    return res.status(400).json(
-      buildResponse(400, "Invalid request data", null, {
-        code: "VALIDATION_ERROR",
-        fieldErrors: result.error.flatten().fieldErrors,
-      }),
-    );
+  try {
+    const result = CreatePackageSchema.safeParse(req.body);
+
+    if (!result.success) {
+      console.log(result.error.flatten());
+
+      return res.status(400).json(
+        buildResponse(400, "Invalid request data", null, {
+          code: "VALIDATION_ERROR",
+          fieldErrors: result.error.flatten().fieldErrors,
+        }),
+      );
+    }
+
+    const newPackage = await createPackage(result.data);
+
+    return res
+      .status(201)
+      .json(buildResponse(201, "Package created successfully", newPackage));
+  } catch (error) {
+    console.error("WEBHOOK ERROR:", error);
+
+    return res.status(500).json({
+      message: error instanceof Error ? error.message : error,
+    });
   }
-
-  const newPackage = await createPackage(result.data);
-  res
-    .status(201)
-    .json(buildResponse(201, "Package created successfully", newPackage));
 };
 
 export const listLoadedPackages = async (req: Request, res: Response) => {
