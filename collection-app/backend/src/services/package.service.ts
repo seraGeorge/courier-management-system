@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PackageStatus, Prisma } from "@/generated/prisma/client";
 import { StatusMap } from "@/lib/constants/package-status";
+import { RawPackageUpdateInput } from "@/validations/package";
 
 const handlePrismaError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -108,4 +109,12 @@ export const updatePackageStatus = async (
       },
     })
     .catch(handlePrismaError);
+};
+
+export const createRawPackageUpdates = async (
+  updates: RawPackageUpdateInput[],
+) => {
+  return prisma.rawPackageUpdate.createMany({
+    data: updates,
+  });
 };

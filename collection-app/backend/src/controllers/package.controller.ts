@@ -3,9 +3,13 @@ import {
   getPackages,
   createPackage,
   updatePackageStatus,
+  createRawPackageUpdates,
 } from "@/services/package.service";
 import { buildResponse } from "@/utils/response";
-import { CreatePackageSchema } from "@/validations/package";
+import {
+  CreatePackageSchema,
+  RawPackageUpdatesSchema,
+} from "@/validations/package";
 import { UpdatePackageStatusSchema } from "@/validations/update-package-status";
 import { type Request, type Response } from "express";
 
@@ -97,6 +101,42 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
           updatedPackage,
         ]),
       );
+  } catch (error) {
+    if (error instanceof Error && error.message === "PACKAGE_NOT_FOUND") {
+      return res.status(404).json(
+        buildResponse(404, "Package not found", null, {
+          code: "PACKAGE_NOT_FOUND",
+        }),
+      );
+    }
+
+    return res.status(500).json(
+      buildResponse(500, "Internal Server Error", null, {
+        code: "INTERNAL_SERVER_ERROR",
+      }),
+    );
+  }
+};
+
+export const receiveRawUpdates = async (req: Request, res: Response) => {
+  const result = RawPackageUpdatesSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json(
+      buildResponse(400, "Invalid request data", null, {
+        code: "VALIDATION_ERROR",
+        fieldErrors: {
+          updates: result.error.flatten().formErrors,
+        },
+      }),
+    );
+  }
+  try {
+    const updates = await createRawPackageUpdates(result.data);
+
+    return res
+      .status(200)
+      .json(buildResponse(200, "Updates received successfully", updates));
   } catch (error) {
     if (error instanceof Error && error.message === "PACKAGE_NOT_FOUND") {
       return res.status(404).json(

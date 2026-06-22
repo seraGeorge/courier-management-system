@@ -1,3 +1,4 @@
+import { PackageStatus } from "@/generated/prisma/browser";
 import { z } from "zod";
 
 export const CreatePackageSchema = z.object({
@@ -10,3 +11,12 @@ export const CreatePackageSchema = z.object({
 });
 
 export type CreatePackageInput = z.infer<typeof CreatePackageSchema>;
+
+export const RawPackageUpdateSchema = z.object({
+  trackingId: z.string().min(1),
+  status: z.enum(PackageStatus),
+});
+
+export const RawPackageUpdatesSchema = z.array(RawPackageUpdateSchema);
+
+export type RawPackageUpdateInput = z.infer<typeof RawPackageUpdateSchema>;
