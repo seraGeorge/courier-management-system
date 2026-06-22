@@ -8,7 +8,7 @@ export const CreatePackageSchema = z.object({
   toAddress: z.string().min(1),
   weight: z.number().positive(),
   regionCode: z.string().min(1),
-  trackingId: z.string().min(1),
+  trackingId: z.string(),
 });
 
 export type CreatePackageInput = z.infer<typeof CreatePackageSchema>;

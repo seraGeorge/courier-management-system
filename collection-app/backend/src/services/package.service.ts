@@ -57,6 +57,7 @@ export const createPackage = async (data: {
   toAddress: string;
   weight: number;
   regionCode: string;
+  trackingId: string;
 }) => {
   const region = await prisma.region.findUnique({
     where: { code: data.regionCode },
@@ -70,7 +71,6 @@ export const createPackage = async (data: {
     .create({
       data: {
         ...data,
-        trackingId: crypto.randomUUID(),
         sale: {
           create: {
             amount: calculateAmount(data.weight),
