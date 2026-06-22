@@ -16,9 +16,11 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "axios": "^1.18.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "node-cron": "^4.5.0",
     "pg": "^8.21.0",
     "tsc-alias": "^1.8.17",
     "zod": "^4.4.3"
