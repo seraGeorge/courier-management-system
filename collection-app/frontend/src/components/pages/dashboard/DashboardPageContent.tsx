@@ -41,6 +41,11 @@ export default function DashboardPageContent() {
           title="Delayed Packages"
           count={dashboard.delayedPackages.count}
           variant="delayed"
+        />{" "}
+        <DashboardCard
+          title="Delivered Packages"
+          count={dashboard.deliveredPackages.count}
+          variant="delivered"
         />
       </div>
       <PackageSection
@@ -55,6 +60,14 @@ export default function DashboardPageContent() {
         title="Delayed Packages"
         packages={dashboard.delayedPackages.packages}
         showDelayReason
+      />
+      <PackageSection
+        title="Delivered Packages"
+        packages={dashboard.deliveredPackages.packages}
+      />
+      <PackageSection
+        title="Out For Delivery Packages"
+        packages={dashboard.outForDeliveryPackages.packages}
       />
     </div>
   );

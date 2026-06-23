@@ -1,13 +1,24 @@
-import { PackageStatus } from "@/generated/prisma/enums";
-import { prisma } from "@/lib/prisma";
 import { getPackages } from "./package.service";
 
 export const getDashboardData = async () => {
-  const [pendingPackages, activePackages, delayedPackages] = await Promise.all([
+  const [
+    toBePickedPackages,
+    pickedUpPackages,
+    inTransitPackages,
+    delayedPackages,
+    deliveredPackages,
+    outForDeliveryPackages,
+  ] = await Promise.all([
     getPackages(0),
     getPackages(1),
     getPackages(2),
+    getPackages(3),
+    getPackages(4),
+    getPackages(5),
   ]);
+
+  const pendingPackages = [...toBePickedPackages];
+  const activePackages = [...pickedUpPackages, ...inTransitPackages];
 
   return {
     pendingPackages: {
@@ -18,6 +29,14 @@ export const getDashboardData = async () => {
     delayedPackages: {
       count: delayedPackages.length,
       packages: delayedPackages,
+    },
+    deliveredPackages: {
+      count: deliveredPackages.length,
+      packages: deliveredPackages,
+    },
+    outForDeliveryPackages: {
+      count: outForDeliveryPackages.length,
+      packages: outForDeliveryPackages,
     },
   };
 };

@@ -1,19 +1,21 @@
 interface DashboardCardProps {
   title: string;
   count: number;
-  variant?: "default" | "active" | "delayed";
+  variant?: "default" | "active" | "delayed" | "delivered";
 };
 
 const VARIANTS = {
   default: "bg-white border-gray-200 text-gray-900",
   active: "bg-blue-50 border-blue-200 text-blue-900",
   delayed: "bg-red-50 border-red-200 text-red-900",
+  delivered: "bg-green-50 border-green-200 text-green-900",
 };
 
 const COUNT_VARIANTS = {
   default: "text-gray-900",
   active: "text-blue-700",
   delayed: "text-red-700",
+  delivered: "text-green-700",
 };
 
 export default function DashboardCard({

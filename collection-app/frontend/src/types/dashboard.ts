@@ -9,4 +9,6 @@ export interface DashboardData {
   pendingPackages: DashboardSection;
   activePackages: DashboardSection;
   delayedPackages: DashboardSection;
+  deliveredPackages: DashboardSection;
+  outForDeliveryPackages: DashboardSection;
 };
