@@ -6,4 +6,5 @@ export const StatusMap = {
   2: PackageStatus.IN_TRANSIT,
   3: PackageStatus.DELAYED,
   4: PackageStatus.DELIVERED,
+  5: PackageStatus.OUT_FOR_DELIVERY,
 } as const;
