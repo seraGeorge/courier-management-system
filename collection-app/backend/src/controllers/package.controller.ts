@@ -119,7 +119,8 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
 };
 
 export const receiveRawUpdates = async (req: Request, res: Response) => {
-  const result = RawPackageUpdatesSchema.safeParse(req.body);
+   console.log("RAW UPDATE RECEIVED", req.body);
+ const result = RawPackageUpdatesSchema.safeParse(req.body);
 
   if (!result.success) {
     return res.status(400).json(

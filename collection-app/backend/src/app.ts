@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import router from "./routes";
+import "../src/jobs/process-raw-updates";
 
 const app = express();
 

@@ -118,3 +118,32 @@ export const createRawPackageUpdates = async (
     data: updates,
   });
 };
+
+export const processRawUpdates = async () => {
+  const updates = await prisma.rawPackageUpdate.findMany({
+    where: {
+      processed: false,
+    },
+  });
+console.log("Updates:", updates.length);
+  for (const update of updates) {
+    await prisma.$transaction([
+      prisma.package.updateMany({
+        where: {
+          trackingId: update.trackingId,
+        },
+        data: {
+          status: update.status,
+        },
+      }),
+      prisma.rawPackageUpdate.update({
+        where: {
+          id: update.id,
+        },
+        data: {
+          processed: true,
+        },
+      }),
+    ]);
+  }
+};
