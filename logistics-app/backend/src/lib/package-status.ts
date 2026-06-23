@@ -11,3 +11,19 @@ export const StatusMap = {
   7: PackageStatus.DELAYED,
   8: PackageStatus.DELIVERED,
 } as const;
+
+export const LogisticsToCollectionAppStatusMap = {
+  TO_BE_PICKED_UP: "TO_BE_PICKED_UP",
+  PICKED_UP: "PICKED_UP",
+
+  ADDED_TO_BAG: "IN_TRANSIT",
+  LOADED_ON_TRUCK: "IN_TRANSIT",
+  EN_ROUTE: "IN_TRANSIT",
+  ARRIVED_AT_REGION: "IN_TRANSIT",
+
+  SCHEDULED_FOR_DELIVERY: "OUT_FOR_DELIVERY",
+  OUT_FOR_DELIVERY: "OUT_FOR_DELIVERY",
+
+  DELAYED: "DELAYED",
+  DELIVERED: "DELIVERED",
+} as const;
