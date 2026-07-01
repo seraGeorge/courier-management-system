@@ -7,11 +7,11 @@
     "esModuleInterop": true,
     "ignoreDeprecations": "6.0",
     "outDir": "dist",
-    "rootDir": "..",
+    "rootDir": ".",
     "skipLibCheck": true,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
   },
   "include": ["src/**/*"],
   "exclude": ["prisma.config.ts"]
