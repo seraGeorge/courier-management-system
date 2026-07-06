@@ -1,4 +1,4 @@
-import { addBag, addPackageToBag, delayBag, getBagDetails, listBags, sealBag } from "@/controllers/bag.controllers";
+import { addBag, addPackageToBag, completeBag, delayBag, getBagDetails, listBags, sealBag } from "@/controllers/bag.controllers";
 import { Router } from "express";
 
 const router = Router();
@@ -9,5 +9,6 @@ router.get("/", listBags);
 router.get("/:bagNumber", getBagDetails);
 router.post("/seal", sealBag);
 router.post("/delay", delayBag);
+router.patch("/:bagNumber/complete", completeBag);
 
 export default router;

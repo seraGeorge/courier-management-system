@@ -1,4 +1,5 @@
 import {
+  completeBagByNumber,
   createBag,
   delayBagByNumber,
   getBagDetailsByNumber,
@@ -124,6 +125,32 @@ export const delayBag = async (req: Request, res: Response) => {
     console.error(error);
     return res.status(500).json(
       buildResponse(500, "Failed to delay bag", null, {
+        code: "INTERNAL_SERVER_ERROR",
+      }),
+    );
+  }
+};
+
+export const completeBag = async (req: Request, res: Response) => {
+  try {
+    const { bagNumber } = req.params;
+
+    const bag = await completeBagByNumber(bagNumber as string);
+
+    return res
+      .status(200)
+      .json(buildResponse(200, "Bag completed successfully", bag));
+  } catch (error) {
+    if (error instanceof Error && error.message === "BAG_NOT_FOUND") {
+      return res.status(404).json(
+        buildResponse(404, "Bag not found", null, {
+          code: "BAG_NOT_FOUND",
+        }),
+      );
+    }
+
+    return res.status(500).json(
+      buildResponse(500, "Failed to complete bag", null, {
         code: "INTERNAL_SERVER_ERROR",
       }),
     );

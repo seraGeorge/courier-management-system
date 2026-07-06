@@ -52,6 +52,11 @@ export const assignPackageToBag = async (data: AssignPackageToBagRequest) => {
 
 export const getBags = async () => {
   return prisma.bag.findMany({
+    where: {
+      status: {
+        not: BagStatus.COMPLETED,
+      },
+    },
     orderBy: { createdAt: "desc" },
     select: {
       bagNumber: true,
@@ -152,6 +157,30 @@ export const delayBagByNumber = async (data: {
     data: {
       status: BagStatus.DELAYED,
       delayReason: delayReason,
+    },
+  });
+};
+
+export const completeBagByNumber = async (bagNumber: string) => {
+  const bag = await prisma.bag.findUnique({
+    where: {
+      bagNumber,
+    },
+    include: {
+      packages: true,
+    },
+  });
+
+  if (!bag) {
+    throw new Error("BAG_NOT_FOUND");
+  }
+
+  return prisma.bag.update({
+    where: {
+      id: bag.id,
+    },
+    data: {
+      status: BagStatus.COMPLETED,
     },
   });
 };

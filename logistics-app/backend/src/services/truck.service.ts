@@ -179,7 +179,7 @@ export const getArrivedTruckDetailsByTruckNumber = async (
           id: truckBag.bag.id,
         },
         data: {
-          status: BagStatus.ARRIVED,
+          status: BagStatus.COMPLETED,
         },
       });
 
@@ -263,7 +263,7 @@ export const updateTruckStatus = async (
             },
           },
           data: {
-            status: BagStatus.ARRIVED,
+            status: BagStatus.COMPLETED,
           },
         });
 

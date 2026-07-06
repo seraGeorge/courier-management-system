@@ -31,8 +31,8 @@ enum BagStatus {
   SEALED
   LOADED
   IN_TRANSIT
-  ARRIVED
   DELAYED
+  COMPLETED
 }
 
 enum TruckStatus {
