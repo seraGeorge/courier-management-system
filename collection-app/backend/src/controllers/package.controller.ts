@@ -66,8 +66,7 @@ export const addPackage = async (req: Request, res: Response) => {
 };
 
 export const patchPackageStatus = async (req: Request, res: Response) => {
-  const { id } = req.params;
-
+  const { id, trackingId } = req.params;
   if (!id) {
     return res.status(400).json(
       buildResponse(400, "Package ID is required", null, {
@@ -77,7 +76,6 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
   }
 
   const result = UpdatePackageStatusSchema.safeParse(req.body);
-
   if (!result.success) {
     return res.status(400).json(
       buildResponse(400, "Invalid request data", null, {
@@ -89,7 +87,7 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
 
   try {
     const updatedPackage = await updatePackageStatus(
-      id.toString(),
+      id.toString() ?? trackingId.toString(),
       result.data.status,
       result.data.delayReason,
     );
@@ -102,6 +100,8 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
         ]),
       );
   } catch (error) {
+    console.error(error);
+
     if (error instanceof Error && error.message === "PACKAGE_NOT_FOUND") {
       return res.status(404).json(
         buildResponse(404, "Package not found", null, {
@@ -119,8 +119,8 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
 };
 
 export const receiveRawUpdates = async (req: Request, res: Response) => {
-   console.log("RAW UPDATE RECEIVED", req.body);
- const result = RawPackageUpdatesSchema.safeParse(req.body);
+  console.log("RAW UPDATE RECEIVED", req.body);
+  const result = RawPackageUpdatesSchema.safeParse(req.body);
 
   if (!result.success) {
     return res.status(400).json(

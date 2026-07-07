@@ -89,7 +89,7 @@ export const createPackage = async (data: {
 };
 
 export const updatePackageStatus = async (
-  id: string,
+  identifier: string,
   status: number,
   delayReason?: string,
 ) => {
@@ -99,9 +99,21 @@ export const updatePackageStatus = async (
     throw new Error("DELAY_REASON_REQUIRED");
   }
 
+  const packageData = await prisma.package.findFirst({
+    where: {
+      OR: [{ id: identifier }, { trackingId: identifier }],
+    },
+  });
+
+  if (!packageData) {
+    throw new Error("PACKAGE_NOT_FOUND");
+  }
+
   return prisma.package
     .update({
-      where: { id },
+      where: {
+        id: packageData.id,
+      },
       data: {
         status: packageStatus,
         delayReason:
@@ -125,7 +137,7 @@ export const processRawUpdates = async () => {
       processed: false,
     },
   });
-console.log("Updates:", updates.length);
+  console.log("Updates:", updates.length);
   for (const update of updates) {
     await prisma.$transaction([
       prisma.package.updateMany({

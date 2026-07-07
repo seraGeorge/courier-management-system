@@ -1,5 +1,5 @@
 "use client";
-import { getDashboard } from "@/services/dashboard";
+import { getDashboard, updatePackageStatus } from "@/services/dashboard";
 import DashboardCard from "./DashboardCard";
 import PackageSection from "./PackageSection";
 import { useEffect, useState } from "react";
@@ -7,13 +7,12 @@ import { DashboardData } from "@/types/dashboard";
 
 export default function DashboardPageContent() {
   const [dashboard, setDashboard] = useState<DashboardData>();
+  const fetchDashboard = async () => {
+    const response = await getDashboard();
+    setDashboard(response.data ?? undefined);
+  };
 
   useEffect(() => {
-    const fetchDashboard = async () => {
-      const response = await getDashboard();
-      setDashboard(response.data ?? undefined);
-    };
-
     fetchDashboard();
   }, []);
 
@@ -25,6 +24,16 @@ export default function DashboardPageContent() {
     );
   }
 
+const handleMarkDelivered = async (trackingId: string) => {
+  try {
+    await updatePackageStatus(trackingId, 4);
+
+    // Refresh the dashboard
+    await fetchDashboard(); // or queryClient.invalidateQueries(...)
+  } catch (error) {
+    console.error(error);
+  }
+};
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -62,12 +71,13 @@ export default function DashboardPageContent() {
         showDelayReason
       />
       <PackageSection
-        title="Delivered Packages"
-        packages={dashboard.deliveredPackages.packages}
-      />
-      <PackageSection
         title="Out For Delivery Packages"
         packages={dashboard.outForDeliveryPackages.packages}
+        onMarkDelivered={handleMarkDelivered}
+      />
+      <PackageSection
+        title="Delivered Packages"
+        packages={dashboard.deliveredPackages.packages}
       />
     </div>
   );

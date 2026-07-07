@@ -2,7 +2,6 @@ import {
   createPackage,
   getLoadedPackages,
   getPackages,
-  getStatusUpdatedPackage,
 } from "@/services/package.service";
 import { buildResponse } from "@/utils/response";
 import {
@@ -40,8 +39,8 @@ export const listPackages = async (req: Request, res: Response) => {
   }
 };
 export const receivePackageWebhook = async (req: Request, res: Response) => {
-    console.log("Webhook hit");
-    console.log(req.body);
+  console.log("Webhook hit");
+  console.log(req.body);
 
   try {
     const result = CreatePackageSchema.safeParse(req.body);
@@ -85,47 +84,6 @@ export const listLoadedPackages = async (req: Request, res: Response) => {
 
     return res.status(500).json(
       buildResponse(500, "Internal Server Error", null, {
-        code: "INTERNAL_SERVER_ERROR",
-      }),
-    );
-  }
-};
-
-export const updatePackageStatus = async (req: Request, res: Response) => {
-  const result = UpdatePackageStatusSchema.safeParse(req.body);
-  if (!result.success) {
-    return res.status(400).json(
-      buildResponse(400, "Invalid request data", null, {
-        code: "VALIDATION_ERROR",
-        fieldErrors: result.error.flatten().fieldErrors,
-      }),
-    );
-  }
-  try {
-    const { trackingId } = req.params;
-    const { status } = req.body;
-    const updatedPackage = await getStatusUpdatedPackage(status, trackingId as string);
-
-    return res
-      .status(200)
-      .json(
-        buildResponse(
-          200,
-          "Package status updated successfully",
-          updatedPackage,
-        ),
-      );
-  } catch (error) {
-    if (error instanceof Error && error.message === "PACKAGE_NOT_FOUND") {
-      return res.status(404).json(
-        buildResponse(404, "Package not found", null, {
-          code: "PACKAGE_NOT_FOUND",
-        }),
-      );
-    }
-
-    return res.status(500).json(
-      buildResponse(500, "Failed to update package status", null, {
         code: "INTERNAL_SERVER_ERROR",
       }),
     );

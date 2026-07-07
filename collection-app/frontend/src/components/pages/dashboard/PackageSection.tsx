@@ -4,7 +4,8 @@ interface PackageSectionProps {
   title: string;
   packages: Package[];
   showDelayReason?: boolean;
-};
+  onMarkDelivered?: (trackingId: string) => void;
+}
 
 const STATUS_LABELS: Record<string, string> = {
   TO_BE_PICKED_UP: "Awaiting Pickup",
@@ -26,6 +27,7 @@ export default function PackageSection({
   title,
   packages,
   showDelayReason = false,
+  onMarkDelivered,
 }: PackageSectionProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -87,11 +89,21 @@ export default function PackageSection({
                     </div>
                   )}
                 </div>
-                <span
-                  className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[pkg.status] ?? "bg-gray-100 text-gray-700"}`}
-                >
-                  {STATUS_LABELS[pkg.status] ?? pkg.status}
-                </span>
+                {pkg.status !== "OUT_FOR_DELIVERY" && (
+                  <span
+                    className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[pkg.status] ?? "bg-gray-100 text-gray-700"}`}
+                  >
+                    {STATUS_LABELS[pkg.status] ?? pkg.status}
+                  </span>
+                )}
+                {pkg.status === "OUT_FOR_DELIVERY" && onMarkDelivered && (
+                  <button
+                    onClick={() => onMarkDelivered(pkg.trackingId)}
+                    className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 transition-colors"
+                  >
+                    Mark Delivered
+                  </button>
+                )}
               </div>
             </div>
           ))}

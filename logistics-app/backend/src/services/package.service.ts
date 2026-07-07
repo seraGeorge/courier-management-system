@@ -96,33 +96,3 @@ export const getLoadedPackages = async () => {
     })),
   );
 };
-
-export const getStatusUpdatedPackage = async (
-  status: PackageStatus,
-  trackingId: string,
-) => {
-  const packageData = await prisma.package.findUnique({
-    where: {
-      trackingId,
-    },
-  });
-
-  if (!packageData) {
-    throw new Error("PACKAGE_NOT_FOUND");
-  }
-
-  const updatedPackageData = await prisma.package.update({
-    where: {
-      trackingId,
-    },
-    data: {
-      status,
-      statusHistory: {
-        create: {
-          status,
-        },
-      },
-    },
-  });
-  return updatedPackageData;
-};
