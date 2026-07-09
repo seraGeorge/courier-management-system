@@ -128,6 +128,7 @@ export const createRawPackageUpdates = async (
 ) => {
   return prisma.rawPackageUpdate.createMany({
     data: updates,
+    skipDuplicates: true,
   });
 };
 
@@ -137,7 +138,12 @@ export const processRawUpdates = async () => {
       processed: false,
     },
   });
-  console.log("Updates:", updates.length);
+
+  if (updates.length === 0) {
+    return;
+  }
+
+  console.log(`[ETL] Processing ${updates.length} update(s)`);
   for (const update of updates) {
     await prisma.$transaction([
       prisma.package.updateMany({

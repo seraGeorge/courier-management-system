@@ -50,7 +50,7 @@ const handleMarkDelivered = async (trackingId: string) => {
           title="Delayed Packages"
           count={dashboard.delayedPackages.count}
           variant="delayed"
-        />{" "}
+        />
         <DashboardCard
           title="Delivered Packages"
           count={dashboard.deliveredPackages.count}

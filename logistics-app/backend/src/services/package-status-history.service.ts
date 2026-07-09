@@ -1,18 +1,18 @@
+import { PackageStatus } from "@/generated/prisma/browser";
 import { LogisticsToCollectionAppStatusMap } from "@/lib/package-status";
 import { prisma } from "@/lib/prisma";
 import axios from "axios";
 
-export const getUpdatedPackages = async () => {
+export const getPendingUpdates = async () => {
   const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
   const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
 
   const histories = await prisma.packageStatusHistory.findMany({
     where: {
-      createdAt: {
-        gte: oneMinuteAgo,
-      },
+      processed: false,
     },
     select: {
+      id: true,
       package: {
         select: {
           trackingId: true,
@@ -21,15 +21,16 @@ export const getUpdatedPackages = async () => {
       status: true,
     },
     orderBy: {
-      createdAt: "desc",
+      createdAt: "asc",
     },
   });
 
   const latest = new Map();
-console.log("Histories:", histories);
+  console.log("Histories:", histories);
   for (const history of histories) {
     if (!latest.has(history.package.trackingId)) {
       latest.set(history.package.trackingId, {
+        eventId: history.id,
         trackingId: history.package.trackingId,
         status: LogisticsToCollectionAppStatusMap[history.status],
       });
@@ -38,17 +39,24 @@ console.log("Histories:", histories);
 
   return [...latest.values()];
 };
-
-export const pushUpdatesToCollection = async () => {
-  const updates = await getUpdatedPackages();
-
-  console.log("Updates found:", updates);
-
-  if (updates.length === 0) {
-    return;
-  }
-
+export type PendingPackageUpdate = Awaited<
+  ReturnType<typeof getPendingUpdates>
+>[number];
+export const sendPackageUpdatesToCollection = async (
+  updates: PendingPackageUpdate[],
+) => {
   await axios.post(process.env.COLLECTION_RAW_UPDATE_URL!, updates);
+};
 
-  console.log(`Pushed ${updates.length} updates`);
+export const markUpdatesProcessed = async (eventIds: string[]) => {
+  await prisma.packageStatusHistory.updateMany({
+    where: {
+      id: {
+        in: eventIds,
+      },
+    },
+    data: {
+      processed: true,
+    },
+  });
 };

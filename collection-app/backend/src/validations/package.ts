@@ -13,6 +13,7 @@ export const CreatePackageSchema = z.object({
 export type CreatePackageInput = z.infer<typeof CreatePackageSchema>;
 
 export const RawPackageUpdateSchema = z.object({
+  eventId: z.string().uuid(),
   trackingId: z.string().min(1),
   status: z.enum(PackageStatus),
 });

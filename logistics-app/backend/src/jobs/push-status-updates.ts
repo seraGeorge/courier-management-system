@@ -1,13 +1,23 @@
 import cron from "node-cron";
 import axios from "axios";
-import { getUpdatedPackages, pushUpdatesToCollection } from "@/services/package-status-history.service";
+import {
+  sendPackageUpdatesToCollection,
+  markUpdatesProcessed,
+  getPendingUpdates,
+} from "@/services/package-status-history.service";
 
 cron.schedule("* * * * *", async () => {
   try {
-    console.log("Pushing updates...");
+    const updates = await getPendingUpdates();
 
-    await pushUpdatesToCollection();
+    if (updates.length === 0) {
+      return;
+    }
+    console.log(`[ETL] Sending ${updates.length} update(s)`);
 
+    await sendPackageUpdatesToCollection(updates);
+
+    await markUpdatesProcessed(updates.map((u) => u.eventId));
   } catch (error) {
     console.error("Failed to push updates", error);
   }

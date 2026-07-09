@@ -124,7 +124,7 @@ export default function BagDispatchTable({
                   {/* Bag number */}
                   <td className="px-4 py-3 font-mono text-xs text-gray-400">
                     {bag.bagNumber}
-                  </td>{" "}
+                  </td>
                   {/* Status */}
                   <td className="px-4 py-3">
                     <StatusPill status={bag.status} />

@@ -133,4 +133,11 @@ model PackageStatusHistory {
   remarks String?
 
   createdAt DateTime @default(now())
+
+  processed Boolean @default(false)
+}
+
+model EtlCheckpoint {
+  id              String @id
+  lastProcessedId Int?
 }

@@ -37,9 +37,9 @@ model Package {
 
   senderName   String
   receiverName String
-  
-  fromAddress  String
-  toAddress    String
+
+  fromAddress String
+  toAddress   String
 
   weight Float
 
@@ -47,7 +47,7 @@ model Package {
   delayReason String?
 
   regionCode String
-  region   Region @relation(fields: [regionCode], references: [code])
+  region     Region @relation(fields: [regionCode], references: [code])
 
   createdAt DateTime @default(now())
   sale      Sale?
@@ -63,9 +63,10 @@ model Sale {
 }
 
 model RawPackageUpdate {
-  id          String   @id @default(uuid())
-  trackingId  String
-  status      PackageStatus
-  receivedAt  DateTime @default(now())
-  processed   Boolean  @default(false)
+  id         String        @id @default(uuid())
+  trackingId String
+  status     PackageStatus
+  receivedAt DateTime      @default(now())
+  processed  Boolean       @default(false)
+  eventId    String        @unique
 }
