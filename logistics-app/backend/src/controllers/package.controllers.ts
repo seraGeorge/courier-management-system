@@ -42,6 +42,15 @@ export const receivePackageWebhook = async (req: Request, res: Response) => {
   console.log("Webhook hit");
   console.log(req.body);
 
+  const apiKey = req.header("x-api-key");
+
+  if (!apiKey) {
+    return res.status(401).json(
+      buildResponse(401, "Missing API key", null, {
+        code: "UNAUTHORIZED",
+      }),
+    );
+  }
   try {
     const result = CreatePackageSchema.safeParse(req.body);
 
@@ -56,7 +65,7 @@ export const receivePackageWebhook = async (req: Request, res: Response) => {
       );
     }
 
-    const newPackage = await createPackage(result.data);
+    const newPackage = await createPackage(result.data, apiKey);
 
     return res
       .status(201)
