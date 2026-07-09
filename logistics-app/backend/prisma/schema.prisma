@@ -43,6 +43,11 @@ enum TruckStatus {
   DELAYED
 }
 
+enum CustomerStatus {
+  ACTIVE
+  DISABLED
+}
+
 model Region {
   id        String   @id @default(uuid())
   code      String   @unique
@@ -50,6 +55,31 @@ model Region {
   createdAt DateTime @default(now())
 
   packages Package[]
+}
+
+model Customer {
+  id String @id @default(cuid())
+
+  name  String
+  email String? @unique
+
+  apiKey    String @unique
+  secretKey String
+
+  webhookUrl String
+
+  status CustomerStatus @default(ACTIVE)
+
+  failureCount Int @default(0)
+
+  lastSuccessAt DateTime?
+  lastFailureAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  packages      Package[]
+  statusHistory PackageStatusHistory[]
 }
 
 model Package {
@@ -76,6 +106,8 @@ model Package {
   updatedAt DateTime @updatedAt
 
   statusHistory PackageStatusHistory[]
+  customerId    String?
+  customer      Customer?              @relation(fields: [customerId], references: [id])
 }
 
 model Bag {
@@ -135,6 +167,9 @@ model PackageStatusHistory {
   createdAt DateTime @default(now())
 
   processed Boolean @default(false)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
 }
 
 model EtlCheckpoint {
