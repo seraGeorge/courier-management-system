@@ -45,7 +45,7 @@ export const getPackages = async (
 
 export const createPackage = async (
   data: CreatePackageRequest,
-  apiKey: string,
+  customerId: string,
 ) => {
   const region = await prisma.region.findUnique({
     where: { code: data.regionCode },
@@ -53,21 +53,16 @@ export const createPackage = async (
 
   if (!region) throw new Error("INVALID_REGION");
 
-  //The request contains: x-api-key: pk_xxxxx
-  const customer = await getCustomerByApiKey(apiKey);
-  if (!customer) {
-    throw new Error("INVALID_API_KEY");
-  }
 
   // Once a package is created it should be updated in the package status history.
   // This will help when connecting collection-app.
   const packageData = await prisma.package.create({
     data: {
       ...data,
-      customerId: customer.id,
+      customerId:customerId,
       statusHistory: {
         create: {
-          customerId: customer.id,
+          customerId: customerId,
           status: PackageStatus.TO_BE_PICKED_UP,
         },
       },
