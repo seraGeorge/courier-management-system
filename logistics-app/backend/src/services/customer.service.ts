@@ -1,3 +1,4 @@
+import { CustomerStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import {
   generateApiKey,
@@ -28,4 +29,12 @@ export const getCustomerByApiKey = async (apiKey: string) => {
   if (!customer) throw new Error("INVALID_API_KEY");
 
   return customer;
+};
+
+export const getActiveCustomers = async () => {
+  return prisma.customer.findMany({
+    where: {
+      status: CustomerStatus.ACTIVE,
+    },
+  });
 };

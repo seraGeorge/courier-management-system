@@ -1,15 +1,16 @@
-import { PackageStatus } from "@/generated/prisma/browser";
+import { Customer, PackageStatus } from "@/generated/prisma/browser";
 import { LogisticsToCollectionAppStatusMap } from "@/lib/package-status";
 import { prisma } from "@/lib/prisma";
 import axios from "axios";
 
-export const getPendingUpdates = async () => {
+export const getPendingUpdates = async (customerId: string) => {
   const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
   const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
 
   const histories = await prisma.packageStatusHistory.findMany({
     where: {
       processed: false,
+      customerId: customerId,
     },
     select: {
       id: true,
@@ -43,9 +44,10 @@ export type PendingPackageUpdate = Awaited<
   ReturnType<typeof getPendingUpdates>
 >[number];
 export const sendPackageUpdatesToCollection = async (
+  customer: Customer,
   updates: PendingPackageUpdate[],
 ) => {
-  await axios.post(process.env.COLLECTION_RAW_UPDATE_URL!, updates);
+  await axios.post(customer.webhookUrl!, updates);
 };
 
 export const markUpdatesProcessed = async (eventIds: string[]) => {
