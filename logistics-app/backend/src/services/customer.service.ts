@@ -38,3 +38,41 @@ export const getActiveCustomers = async () => {
     },
   });
 };
+
+export const incrementFailureCount = async (customerId: string) => {
+  return prisma.customer.update({
+    where: {
+      id: customerId,
+    },
+    data: {
+      failureCount: {
+        increment: 1,
+      },
+      lastFailureAt: new Date(),
+    },
+  });
+};
+
+export const resetFailureCount = async (customerId: string) => {
+  return prisma.customer.update({
+    where: {
+      id: customerId,
+    },
+    data: {
+      failureCount: 0,
+      lastSuccessAt: new Date(),
+    },
+  });
+};
+
+export const disableCustomer = async (customerId: string) => {
+  return prisma.customer.update({
+    where: {
+      id: customerId,
+    },
+    data: {
+      status: CustomerStatus.DISABLED,
+    },
+  });
+};
+

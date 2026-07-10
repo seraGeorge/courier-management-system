@@ -4,7 +4,12 @@ import {
   markUpdatesProcessed,
   getPendingUpdates,
 } from "@/services/package-status-history.service";
-import { getActiveCustomers } from "@/services/customer.service";
+import {
+  disableCustomer,
+  getActiveCustomers,
+  incrementFailureCount,
+  resetFailureCount,
+} from "@/services/customer.service";
 
 cron.schedule("* * * * *", async () => {
   try {
@@ -23,11 +28,17 @@ cron.schedule("* * * * *", async () => {
         await sendPackageUpdatesToCollection(customer, updates);
 
         await markUpdatesProcessed(updates.map((u) => u.eventId));
+
+        await resetFailureCount(customer.id);
       } catch (error) {
         console.error(
           `[ETL] Failed to process updates for customer ${customer.id}`,
           error,
         );
+        const updatedCustomer = await incrementFailureCount(customer.id);
+        if (updatedCustomer.failureCount  >= 5) {
+          await disableCustomer(updatedCustomer.id);
+        }
       }
     }
   } catch (error) {
