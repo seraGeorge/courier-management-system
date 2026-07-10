@@ -72,6 +72,10 @@ model Customer {
 
   failureCount Int @default(0)
 
+  retryCount Int @default(0)
+
+  nextRetryAt DateTime?
+
   lastSuccessAt DateTime?
   lastFailureAt DateTime?
 
