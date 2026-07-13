@@ -2,6 +2,8 @@ import { getCustomerByApiKey } from "@/services/customer.service";
 import { generateSignature } from "@/utils/hmac";
 import { buildResponse } from "@/utils/response";
 import { NextFunction, Request, Response } from "express";
+import * as crypto from "node:crypto";
+
 export const verifyWebhook = async (
   req: Request,
   res: Response,
@@ -9,7 +11,7 @@ export const verifyWebhook = async (
 ) => {
   const apiKey = req.header("x-api-key");
   const receivedSignature = req.header("x-signature");
-  if (!apiKey) {
+  if (!apiKey || !receivedSignature) {
     return res.status(401).json(
       buildResponse(401, "Missing authentication headers", null, {
         code: "UNAUTHORIZED",
@@ -32,7 +34,13 @@ export const verifyWebhook = async (
     customer.secretKey,
   );
 
-  if (expectedSignature !== receivedSignature) {
+  // Javascript === comparison stops as soon as it finds a mismatch, which can lead to timing attacks. timingSafeEqual() compares the entire value in constant time regardless of where the first difference occurs, making that attack much harder.
+  const isValid = crypto.timingSafeEqual(
+    Buffer.from(expectedSignature),
+    Buffer.from(receivedSignature),
+  );
+
+  if (!isValid) {
     return res.status(403).json(
       buildResponse(403, "Invalid signature", null, {
         code: "INVALID_SIGNATURE",
