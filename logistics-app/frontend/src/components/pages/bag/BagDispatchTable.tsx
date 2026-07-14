@@ -7,25 +7,58 @@ import { getTrucks } from "@/services/truck";
 
 const BAG_STATUS_STYLES: Record<
   string,
-  { bg: string; text: string; label: string }
+  { bg: string; text: string; dot: string; label: string }
 > = {
-  OPEN: { bg: "bg-gray-100", text: "text-gray-700", label: "Open" },
-  SEALED: { bg: "bg-blue-50", text: "text-blue-700", label: "Sealed" },
-  IN_TRANSIT: { bg: "bg-blue-50", text: "text-blue-700", label: "In Transit" },
-  ARRIVED: { bg: "bg-blue-50", text: "text-blue-700", label: "Arrived" },
-  DELAYED: { bg: "bg-red-50", text: "text-red-600", label: "Delayed" },
+  OPEN: {
+    bg: "bg-slate-100",
+    text: "text-slate-700",
+    dot: "bg-slate-400",
+    label: "Open",
+  },
+  SEALED: {
+    bg: "bg-violet-100",
+    text: "text-violet-700",
+    dot: "bg-violet-500",
+    label: "Sealed",
+  },
+  LOADED: {
+    bg: "bg-blue-100",
+    text: "text-blue-700",
+    dot: "bg-blue-500",
+    label: "Loaded",
+  },
+  IN_TRANSIT: {
+    bg: "bg-sky-100",
+    text: "text-sky-700",
+    dot: "bg-sky-500",
+    label: "In Transit",
+  },
+  ARRIVED: {
+    bg: "bg-emerald-100",
+    text: "text-emerald-700",
+    dot: "bg-emerald-500",
+    label: "Arrived",
+  },
+  DELAYED: {
+    bg: "bg-red-100",
+    text: "text-red-600",
+    dot: "bg-red-500",
+    label: "Delayed",
+  },
 };
 
 function StatusPill({ status }: { status: string }) {
   const s = BAG_STATUS_STYLES[status] ?? {
-    bg: "bg-gray-100",
-    text: "text-gray-600",
+    bg: "bg-slate-100",
+    text: "text-slate-600",
+    dot: "bg-slate-400",
     label: status,
   };
   return (
     <span
-      className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${s.bg} ${s.text}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}
     >
+      <span className={`w-1.5 h-1.5 rounded-full ${s.dot} flex-shrink-0`} />
       {s.label}
     </span>
   );
@@ -50,9 +83,7 @@ export default function BagDispatchTable({
   onSealBag,
 }: BagDispatchTableProps) {
   const [trucks, setTrucks] = useState<TruckResponse[]>([]);
-  // per-row state: selected truck number
   const [selected, setSelected] = useState<Record<string, string>>({});
-  // per-row loading state
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -79,21 +110,25 @@ export default function BagDispatchTable({
       setLoading((prev) => ({ ...prev, [bagNumber]: false }));
     }
   }
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="border-b border-gray-100">
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">
+          <tr className="border-b border-slate-100 bg-slate-50">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Bag Number
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Status
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Packages In Bag
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Assign Truck
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Action
             </th>
           </tr>
@@ -103,7 +138,7 @@ export default function BagDispatchTable({
             <tr>
               <td
                 colSpan={5}
-                className="px-4 py-8 text-center text-sm text-gray-400"
+                className="px-4 py-12 text-center text-sm text-slate-400"
               >
                 No bags found
               </td>
@@ -116,66 +151,75 @@ export default function BagDispatchTable({
               const isInTransit = bag.status === "IN_TRANSIT";
               const isArrived = bag.status === "ARRIVED";
               const isDelayed = bag.status === "DELAYED";
+              const pkgCount = bag.packages?.length ?? 0;
               return (
                 <tr
                   key={bag.bagNumber}
-                  className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50/70 transition-colors"
                 >
                   {/* Bag number */}
-                  <td className="px-4 py-3 font-mono text-xs text-gray-400">
+                  <td className="px-4 py-3.5 font-mono text-xs text-slate-500 font-medium">
                     {bag.bagNumber}
                   </td>
                   {/* Status */}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <StatusPill status={bag.status} />
                   </td>
-                  {/* Package count */}
-                  <td className="px-4 py-3 text-gray-400">
-                    <div className="space-y-1">
-                      <div className="text-xs font-medium">
-                        {bag.packages?.length ?? 0} Packages
+                  {/* Packages */}
+                  <td className="px-4 py-3.5">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-slate-100 text-slate-700 text-xs font-bold">
+                          {pkgCount}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">
+                          {pkgCount === 1 ? "package" : "packages"}
+                        </span>
                       </div>
-
-                      <div className="flex flex-wrap gap-1">
-                        {bag.packages?.map((pkg) => (
-                          <span
-                            key={pkg.trackingId}
-                            className="px-2 py-1 rounded bg-gray-100 text-xs font-mono"
-                          >
-                            {pkg.trackingId}
-                          </span>
-                        ))}
-                      </div>
+                      {pkgCount > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {bag.packages?.map((pkg) => (
+                            <span
+                              key={pkg.trackingId}
+                              className="px-1.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-xs font-mono text-slate-600"
+                            >
+                              {pkg.trackingId}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </td>
                   {/* Truck selector */}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     {isOpen && (
-                      <span className="text-xs text-gray-400">
-                        Seal bag before loading
+                      <span className="text-xs text-slate-400 italic">
+                        Seal bag first
                       </span>
                     )}
-
                     {isDelayed && (
-                      <span className="text-xs text-red-500">Delayed</span>
+                      <span className="text-xs text-red-500 font-medium">
+                        Delayed
+                      </span>
                     )}
-
                     {isLoaded && (
-                      <span className="text-xs text-yellow-600">
-                        Waiting For Departure
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-medium bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                        Waiting for departure
                       </span>
                     )}
                     {isInTransit && (
-                      <span className="text-xs text-gray-400">In Transit</span>
+                      <span className="inline-flex items-center gap-1 text-xs text-sky-600 font-medium bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md">
+                        In Transit
+                      </span>
                     )}
-
                     {isArrived && (
-                      <span className="text-xs text-green-600">Arrived</span>
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                        ✓ Arrived
+                      </span>
                     )}
-
                     {isSealed &&
                       (trucks.length === 0 ? (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-slate-400 italic">
                           No trucks available
                         </span>
                       ) : (
@@ -187,10 +231,9 @@ export default function BagDispatchTable({
                               [bag.bagNumber]: e.target.value,
                             }))
                           }
-                          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 bg-white min-w-[140px]"
+                          className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 bg-white min-w-[150px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                         >
-                          <option value="">Select truck</option>
-
+                          <option value="">Select truck…</option>
                           {trucks.map((t) => (
                             <option key={t.truckNumber} value={t.truckNumber}>
                               {t.truckNumber} ({t.truckBags.length} bags)
@@ -200,43 +243,41 @@ export default function BagDispatchTable({
                       ))}
                   </td>
                   {/* Action */}
-                  <td className="px-4 py-3 ">
+                  <td className="px-4 py-3.5">
                     {isOpen && (
                       <button
                         onClick={() => handleSeal(bag.bagNumber)}
-                        disabled={(bag.packages ?? [])?.length === 0}
-                        className="px-3 py-1.5 text-xs rounded-md disabled:cursor-not-allowed disabled:bg-blue-400  bg-blue-600 text-white"
+                        disabled={pkgCount === 0 || loading[bag.bagNumber]}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        Seal Bag
+                        {loading[bag.bagNumber] ? "Sealing…" : "Seal Bag"}
                       </button>
                     )}
-
                     {isSealed && (
                       <button
                         onClick={() => handleLoad(bag.bagNumber)}
                         disabled={
                           !selected[bag.bagNumber] || loading[bag.bagNumber]
                         }
-                        className="px-3 py-1.5 text-xs rounded-md bg-black text-white disabled:opacity-40"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        {loading[bag.bagNumber]
-                          ? "Loading..."
-                          : "Load To Truck"}
+                        {loading[bag.bagNumber] ? "Loading…" : "Load to Truck"}
                       </button>
                     )}
-
                     {isDelayed && (
-                      <span className="text-xs text-red-500">
-                        Awaiting Resolution
+                      <span className="text-xs text-red-500 font-medium italic">
+                        Awaiting resolution
                       </span>
                     )}
-
                     {isInTransit && (
-                      <span className="text-xs text-gray-500">In Transit</span>
+                      <span className="text-xs text-slate-400 italic">
+                        In transit
+                      </span>
                     )}
-
                     {isArrived && (
-                      <span className="text-xs text-green-600">Arrived</span>
+                      <span className="text-xs text-emerald-600 font-medium">
+                        ✓ Delivered
+                      </span>
                     )}
                   </td>
                 </tr>

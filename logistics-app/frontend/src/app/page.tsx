@@ -3,12 +3,14 @@ import { Suspense } from "react";
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
-      <Suspense
-        fallback={<div className="text-sm text-gray-400">Loading...</div>}
-      >
-        <DashboardPageContent />
-      </Suspense>
-    </div>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20 text-sm text-slate-400">
+          Loading dashboard…
+        </div>
+      }
+    >
+      <DashboardPageContent />
+    </Suspense>
   );
 }
