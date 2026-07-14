@@ -3,5 +3,5 @@ import { verifyWebhook } from "@/middlewares/verifyWebhook";
 import { Router } from "express";
 
 const router = Router();
-router.post("/webhook", verifyWebhook, receivePackageWebhook);
+router.post("/", verifyWebhook, receivePackageWebhook);
 export default router;

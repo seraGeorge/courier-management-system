@@ -5,7 +5,7 @@ set -e
 echo "Waiting for postgres..."
 
 # If any command fails, stop immediately.
-until nc -z postgres 5432
+until nc -z collection_db 5432
 do
   sleep 1
 done

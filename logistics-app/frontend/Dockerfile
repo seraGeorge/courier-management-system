@@ -1,34 +1,30 @@
 # Use lightweight Node 20 image as base
 FROM node:20-slim
 
-# Set working directory inside the container
-WORKDIR /app
-
-# Copy package files first so Docker caches this layer
-# npm install only reruns when package.json changes, not on every code change
-COPY frontend/package*.json ./ ./frontend/
-
+# Set working directory
 WORKDIR /app/frontend
 
+# Copy package files first so Docker can cache dependencies
+COPY frontend/package*.json ./
+
+# Install dependencies
 RUN npm install
 
+# Copy shared package
 COPY shared ../shared
 
-# Copy the rest of the source code
-COPY frontend .
+# Copy application source
+COPY frontend ./
 
-# Accept the API URL as a build argument
-# Next.js NEXT_PUBLIC_* variables must be available at build time, not just runtime
+# Build-time environment variable for Next.js
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Build the Next.js app
+# Build the application
 RUN npm run build
 
-# Expose the port Next.js runs on
+# Expose Next.js port
 EXPOSE 3000
 
-# Start the Next.js production server
+# Start the production server
 CMD ["npm", "start"]
-
-

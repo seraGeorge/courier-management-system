@@ -106,6 +106,7 @@ export const loadBagToTruck = async (data: LoadBagToTruckRequest) => {
       data: packages.map((pkg) => ({
         packageId: pkg.id,
         status: PackageStatus.LOADED_ON_TRUCK,
+        customerId: pkg.customerId,
       })),
     });
     await tx.truck.update({
@@ -198,6 +199,7 @@ export const getArrivedTruckDetailsByTruckNumber = async (
           data: {
             packageId: pkg.id,
             status: PackageStatus.ARRIVED_AT_REGION,
+            customerId: pkg.customerId,
           },
         });
       }
@@ -242,6 +244,7 @@ export const updateTruckStatus = async (
       },
       select: {
         id: true,
+        customerId: true,
       },
     });
 
@@ -282,6 +285,7 @@ export const updateTruckStatus = async (
           data: packages.map((pkg) => ({
             packageId: pkg.id,
             status: PackageStatus.ARRIVED_AT_REGION,
+            customerId: pkg.customerId,
           })),
         });
       }
@@ -313,6 +317,7 @@ export const updateTruckStatus = async (
           data: packages.map((pkg) => ({
             packageId: pkg.id,
             status: PackageStatus.DELAYED,
+            customerId: pkg.customerId,
           })),
         });
       }
@@ -344,6 +349,7 @@ export const updateTruckStatus = async (
           data: packages.map((pkg) => ({
             packageId: pkg.id,
             status: PackageStatus.EN_ROUTE,
+            customerId: pkg.customerId,
           })),
         });
       }
