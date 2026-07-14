@@ -53,13 +53,12 @@ export const createPackage = async (
 
   if (!region) throw new Error("INVALID_REGION");
 
-
   // Once a package is created it should be updated in the package status history.
   // This will help when connecting collection-app.
   const packageData = await prisma.package.create({
     data: {
       ...data,
-      customerId:customerId,
+      customerId: customerId,
       statusHistory: {
         create: {
           customerId: customerId,
@@ -101,4 +100,38 @@ export const getLoadedPackages = async () => {
       bagNumber: truckBag.bag.bagNumber,
     })),
   );
+};
+
+export const updatePackageStatusByTrackingId = async (
+  trackingId: string,
+  status: PackageStatus,
+) => {
+  const existingPackage = await prisma.package.findUnique({
+    where: { trackingId },
+    select: {
+      id: true,
+      customerId: true,
+    },
+  });
+
+  if (!existingPackage) {
+    throw new Error("PACKAGE_NOT_FOUND");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updatedPackage = await tx.package.update({
+      where: { trackingId },
+      data: { status },
+    });
+
+    await tx.packageStatusHistory.create({
+      data: {
+        packageId: existingPackage.id,
+        status,
+        customerId: existingPackage.customerId,
+      },
+    });
+
+    return updatedPackage;
+  });
 };
