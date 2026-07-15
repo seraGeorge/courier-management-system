@@ -1,12 +1,10 @@
 import { Customer, PackageStatus } from "@/generated/prisma/browser";
 import { LogisticsToCollectionAppStatusMap } from "@/lib/package-status";
 import { prisma } from "@/lib/prisma";
+import { generateSignature } from "@/utils/hmac";
 import axios from "axios";
 
 export const getPendingUpdates = async (customerId: string) => {
-  const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
-  const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-
   const histories = await prisma.packageStatusHistory.findMany({
     where: {
       processed: false,
@@ -47,7 +45,15 @@ export const sendPackageUpdatesToCollection = async (
   customer: Customer,
   updates: PendingPackageUpdate[],
 ) => {
-  await axios.post(customer.webhookUrl!, updates);
+  await axios.post(customer.webhookUrl!, updates, {
+    headers: {
+      "x-api-key": customer.apiKey,
+      "x-signature": generateSignature(
+        JSON.stringify(updates),
+        customer.secretKey,
+      ),
+    },
+  });
 };
 
 export const markUpdatesProcessed = async (eventIds: string[]) => {

@@ -5,8 +5,11 @@ import truckRoutes from "./truck.routes";
 import regionRoutes from "./region.routes";
 import webhookRoutes from "./webhooks";
 import customerRoutes from "./customer.routes";
+import healthRoutes from "./health.routes";
 
 const router = Router();
+
+router.use("/health",healthRoutes);
 
 router.use("/regions", regionRoutes);
 

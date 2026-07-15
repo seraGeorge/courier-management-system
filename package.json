@@ -1,0 +1,33 @@
+{
+  "name": "courier-management-system",
+  "version": "1.0.0",
+  "description": "A full-stack distributed courier logistics platform built as two independent applications that communicate through secure webhooks and scheduled ETL synchronization.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "setup": "tsx setup/setup.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seraGeorge/courier-management-system.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/seraGeorge/courier-management-system/issues"
+  },
+  "homepage": "https://github.com/seraGeorge/courier-management-system#readme",
+  "dependencies": {
+    "axios": "^1.18.1",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "tsx": "^4.23.1"
+  },
+  "compilerOptions": {
+    "types": ["node"]
+  }
+}

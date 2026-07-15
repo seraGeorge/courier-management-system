@@ -20,7 +20,7 @@ export const createCustomer = async (data: CreateCustomerRequest) => {
   });
 
   if (existing) {
-    throw new Error("CUSTOMER_ALREADY_EXISTS");
+    return existing;
   }
   return prisma.customer.create({
     data: {
@@ -95,6 +95,8 @@ export const resetFailureCount = async (customerId: string) => {
     },
     data: {
       failureCount: 0,
+      retryCount: 0,
+      nextRetryAt: null,
       lastSuccessAt: new Date(),
     },
   });
