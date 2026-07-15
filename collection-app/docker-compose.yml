@@ -45,8 +45,6 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
-    environment:
-      API_URL: http://collection_backend:5000
     depends_on:
       - collection_backend
     networks:

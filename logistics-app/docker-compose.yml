@@ -45,8 +45,6 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3000"
-    environment:
-      API_URL: http://logistics_backend:5001
     depends_on:
       - logistics_backend
     networks:
