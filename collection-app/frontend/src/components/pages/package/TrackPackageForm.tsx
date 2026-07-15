@@ -16,11 +16,11 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  TO_BE_PICKED_UP: "bg-gray-100 text-gray-700 border-gray-200",
-  PICKED_UP: "bg-blue-50 text-blue-700 border-blue-200",
-  IN_TRANSIT: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  DELAYED: "bg-red-50 text-red-700 border-red-200",
-  DELIVERED: "bg-green-50 text-green-700 border-green-200",
+  TO_BE_PICKED_UP: "bg-slate-100 text-slate-700 border-slate-200",
+  PICKED_UP: "bg-blue-100 text-blue-700 border-blue-200",
+  IN_TRANSIT: "bg-amber-100 text-amber-700 border-amber-200",
+  DELAYED: "bg-red-100 text-red-700 border-red-200",
+  DELIVERED: "bg-emerald-100 text-emerald-700 border-emerald-200",
 };
 
 const STATUS_STEPS = [
@@ -84,10 +84,10 @@ export default function TrackPackageForm() {
       {/* Search form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-xl border border-gray-200 p-6 space-y-4 shadow-sm"
+        className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm"
       >
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             Tracking ID
           </label>
           <input
@@ -99,7 +99,7 @@ export default function TrackPackageForm() {
               setResult(null);
             }}
             placeholder="e.g. 9fb1f171-2d59-40ee-b631-1d9ecc8d0a41"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-black"
+            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-slate-900"
           />
           {errors.trackingId?.map((e) => (
             <p key={e} className="text-red-500 text-xs mt-1">
@@ -135,7 +135,7 @@ export default function TrackPackageForm() {
         <button
           type="submit"
           disabled={loading || !trackingId.trim()}
-          className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
           {loading ? "Tracking..." : "Track Package"}
         </button>
@@ -143,28 +143,28 @@ export default function TrackPackageForm() {
 
       {/* Result */}
       {result && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
             <div>
-              <p className="text-xs text-gray-400 font-mono mb-1">
+              <p className="text-xs text-slate-400 font-mono mb-1">
                 {result.trackingId}
               </p>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-slate-900">
                 Package Status
               </h2>
             </div>
             <span
-              className={`text-xs font-medium px-3 py-1.5 rounded-full border ${STATUS_COLORS[result.status] ?? "bg-gray-100 text-gray-700"}`}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${STATUS_COLORS[result.status] ?? "bg-slate-100 text-slate-700"}`}
             >
               {STATUS_LABELS[result.status] ?? result.status}
             </span>
           </div>
 
           {/* Progress timeline */}
-          <div className="px-6 py-5 border-b border-gray-100">
+          <div className="px-6 py-5 border-b border-slate-100">
             <div className="flex items-center justify-between relative">
-              <div className="absolute left-0 right-0 top-3 h-0.5 bg-gray-200 z-0" />
+              <div className="absolute left-0 right-0 top-3 h-0.5 bg-slate-200 z-0" />
               <div
                 className="absolute left-0 top-3 h-0.5 bg-blue-500 z-0 transition-all"
                 style={{
@@ -193,13 +193,13 @@ export default function TrackPackageForm() {
                           ? result.status === "DELAYED"
                             ? "bg-red-500 border-red-500 text-white"
                             : "bg-blue-500 border-blue-500 text-white"
-                          : "bg-white border-gray-300 text-gray-400"
+                          : "bg-white border-slate-300 text-slate-400"
                     }`}
                   >
                     {i < currentStep ? "✓" : i + 1}
                   </div>
                   <span
-                    className={`text-xs text-center max-w-16 leading-tight ${i <= currentStep ? "text-gray-700 font-medium" : "text-gray-400"}`}
+                    className={`text-xs text-center max-w-16 leading-tight ${i <= currentStep ? "text-slate-700 font-medium" : "text-slate-400"}`}
                   >
                     {STATUS_LABELS[step]}
                   </span>
@@ -211,15 +211,15 @@ export default function TrackPackageForm() {
           {/* Details */}
           <div className="px-6 py-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-400 mb-1">Current Region</p>
-                <p className="text-sm font-medium text-gray-800">
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <p className="text-xs text-slate-400 mb-1">Current Region</p>
+                <p className="text-sm font-medium text-slate-800">
                   {result.region.name}
                 </p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-400 mb-1">Current Status</p>
-                <p className="text-sm font-medium text-gray-800">
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <p className="text-xs text-slate-400 mb-1">Current Status</p>
+                <p className="text-sm font-medium text-slate-800">
                   {STATUS_LABELS[result.status] ?? result.status}
                 </p>
               </div>
@@ -240,17 +240,17 @@ export default function TrackPackageForm() {
 
             {/* Bill of sale */}
             {result.sale && (
-              <div className="border-t border-gray-100 pt-4">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
+              <div className="border-t border-slate-100 pt-4">
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-3">
                   Bill of Sale
                 </p>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">Shipping Amount</span>
-                  <span className="font-semibold text-gray-900 text-base">
+                  <span className="text-slate-600">Shipping Amount</span>
+                  <span className="font-semibold text-slate-900 text-base">
                     ₹{result.sale.amount}
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   Issued on{" "}
                   {new Date(result.sale.createdAt).toLocaleDateString("en-IN", {
                     day: "numeric",

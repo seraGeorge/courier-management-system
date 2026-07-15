@@ -2,16 +2,17 @@ import TrackPackageForm from "@/components/pages/package/TrackPackageForm";
 
 export default function TrackPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Track Your Package
-          </h1>
-          <p className="text-gray-500 mt-2 text-sm">
-            Enter your tracking ID to get the latest status of your shipment.
-          </p>
-        </div>
+    <div className="w-full max-w-2xl mx-auto space-y-6">
+      <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 px-7 py-6 shadow-lg">
+        <p className="text-blue-200 text-xs font-semibold uppercase tracking-widest mb-1">
+          Shipment Tracking
+        </p>
+        <h1 className="text-2xl font-bold text-white">Track Your Package</h1>
+        <p className="text-blue-200 text-sm mt-1">
+          Enter your tracking ID to see the latest delivery movement.
+        </p>
+      </div>
+      <div className="w-full">
         <TrackPackageForm />
       </div>
     </div>

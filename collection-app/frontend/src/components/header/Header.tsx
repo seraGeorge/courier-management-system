@@ -1,31 +1,64 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const NAV_LINKS = [
+  { label: "Dashboard", href: "/" },
+  { label: "New Package", href: "/new-package" },
+  { label: "Track Package", href: "/track-package" },
+];
 
 export default function Header() {
+  const pathname = usePathname();
+
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-        <Link href="/" className="text-base font-semibold text-gray-900">
-          Courier Collection
+    <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm flex-shrink-0">
+            <svg
+              className="w-4 h-4 text-white"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="1" y="3" width="15" height="13" rx="1" />
+              <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+              <circle cx="5.5" cy="18.5" r="2.5" />
+              <circle cx="18.5" cy="18.5" r="2.5" />
+            </svg>
+          </div>
+          <div className="leading-none">
+            <span className="font-bold text-slate-900 text-sm block">
+              Courier Collection
+            </span>
+            <span className="text-xs text-slate-400 block mt-0.5">
+              Hub · Customer Ops
+            </span>
+          </div>
         </Link>
+
         <nav className="flex items-center gap-1">
-          <Link
-            href="/"
-            className="text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors"
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/new-package"
-            className="text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors"
-          >
-            New Package
-          </Link>
-          <Link
-            href="/track-package"
-            className="text-sm bg-blue-600 text-white hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors"
-          >
-            Track Package
-          </Link>
+          {NAV_LINKS.map(({ label, href }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  active
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </nav>
       </div>
     </header>

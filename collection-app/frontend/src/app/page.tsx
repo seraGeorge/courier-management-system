@@ -3,18 +3,14 @@ import DashboardPageContent from "@/components/pages/dashboard/DashboardPageCont
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Overview of all packages in the system
-        </p>
-      </div>
-      <Suspense
-        fallback={<div className="text-sm text-gray-400">Loading...</div>}
-      >
-        <DashboardPageContent />
-      </Suspense>
-    </div>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20 text-sm text-slate-400">
+          Loading dashboard…
+        </div>
+      }
+    >
+      <DashboardPageContent />
+    </Suspense>
   );
 }
