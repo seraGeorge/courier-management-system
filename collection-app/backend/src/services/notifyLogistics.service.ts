@@ -16,7 +16,11 @@ export const createPackageWebhook = async (
     : `${baseUrl}/api/webhooks/packages`;
 
   const body = JSON.stringify(payload);
-  const signature = generateSignature(body, process.env.LOGISTICS_SECRET_KEY!);
+
+  if (!process.env.LOGISTICS_SECRET_KEY) {
+    throw new Error("LOGISTICS_SECRET_KEY is not configured");
+  }
+  const signature = generateSignature(body, process.env.LOGISTICS_SECRET_KEY);
 
   try {
     await axios.post(webhookUrl, payload, {

@@ -23,7 +23,13 @@ export const createCustomer = async (req: Request, res: Response) => {
       .json(buildResponse(201, "Customer created successfully", customer));
   } catch (error) {
     console.error(error);
-
+    if (error instanceof Error && error.message === "CUSTOMER_ALREADY_EXISTS") {
+      return res.status(409).json(
+        buildResponse(409, "Customer already exists", null, {
+          code: "CUSTOMER_ALREADY_EXISTS",
+        }),
+      );
+    }
     return res.status(500).json(
       buildResponse(500, "Internal Server Error", null, {
         code: "INTERNAL_SERVER_ERROR",

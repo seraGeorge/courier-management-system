@@ -13,6 +13,15 @@ interface CreateCustomerRequest {
 }
 
 export const createCustomer = async (data: CreateCustomerRequest) => {
+  const existing = await prisma.customer.findUnique({
+    where: {
+      email: data.email,
+    },
+  });
+
+  if (existing) {
+    throw new Error("CUSTOMER_ALREADY_EXISTS");
+  }
   return prisma.customer.create({
     data: {
       ...data,
