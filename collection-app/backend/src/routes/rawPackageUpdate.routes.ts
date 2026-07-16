@@ -1,5 +1,5 @@
-import { receiveRawUpdates } from "@/controllers/package.controller";
 import { Router } from "express";
+import { receiveRawUpdates } from "@/controllers/rawPackageUpdates.controller";
 
 const router = Router();
 router.post("/", receiveRawUpdates);

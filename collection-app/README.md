@@ -185,6 +185,11 @@ All APIs return:
 }
 ```
 
+Dashboard summary (`GET /api/dashboard`) now includes:
+
+- `statusSections`: package list + count for each status (`TO_BE_PICKED_UP`, `PICKED_UP`, `PROCESSING`, `IN_TRANSIT`, `SCHEDULED_FOR_DELIVERY`, `OUT_FOR_DELIVERY`, `DELAYED`, `DELIVERED`)
+- `statusGraph`: ordered status flow with `label`, `count`, and `percentage` for collection-hub visualization
+
 Validation error shape:
 
 ```json

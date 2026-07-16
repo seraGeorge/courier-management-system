@@ -16,12 +16,13 @@ datasource db {
 enum PackageStatus {
   TO_BE_PICKED_UP
   PICKED_UP
+  PROCESSING
   IN_TRANSIT
+  SCHEDULED_FOR_DELIVERY
   OUT_FOR_DELIVERY
   DELAYED
   DELIVERED
 }
-
 model Region {
   id        String   @id @default(uuid())
   code      String   @unique
@@ -63,10 +64,14 @@ model Sale {
 }
 
 model RawPackageUpdate {
-  id         String        @id @default(uuid())
-  trackingId String
-  status     PackageStatus
-  receivedAt DateTime      @default(now())
-  processed  Boolean       @default(false)
-  eventId    String        @unique
+  id          String        @id @default(uuid())
+  batchId     String
+  trackingId  String
+  status      PackageStatus
+  eventId     String        @unique
+  receivedAt  DateTime      @default(now())
+  appliedAt   DateTime?
+  confirmedAt DateTime?
+
+  @@index([batchId])
 }

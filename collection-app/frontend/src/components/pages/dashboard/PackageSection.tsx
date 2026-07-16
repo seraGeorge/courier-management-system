@@ -1,4 +1,5 @@
 import { Package } from "@/types/package";
+import { PackageStatus } from "@/types/package-status";
 
 interface PackageSectionProps {
   title: string;
@@ -8,7 +9,7 @@ interface PackageSectionProps {
 }
 
 const STATUS_META: Record<
-  string,
+  PackageStatus,
   { label: string; pill: string; dot: string }
 > = {
   TO_BE_PICKED_UP: {
@@ -21,10 +22,20 @@ const STATUS_META: Record<
     pill: "bg-blue-100 text-blue-700",
     dot: "bg-blue-500",
   },
+  PROCESSING: {
+    label: "Processing",
+    pill: "bg-cyan-100 text-cyan-700",
+    dot: "bg-cyan-500",
+  },
   IN_TRANSIT: {
     label: "In Transit",
     pill: "bg-amber-100 text-amber-700",
     dot: "bg-amber-500",
+  },
+  SCHEDULED_FOR_DELIVERY: {
+    label: "Scheduled for Delivery",
+    pill: "bg-violet-100 text-violet-700",
+    dot: "bg-violet-500",
   },
   OUT_FOR_DELIVERY: {
     label: "Out for Delivery",

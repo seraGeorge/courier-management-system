@@ -1,8 +1,7 @@
 import { StatusMap } from "@/lib/package-status";
 import { prisma } from "@/lib/prisma";
 import { CreatePackageRequest } from "@shared/types";
-import { PackageStatus, TruckStatus } from "@/generated/prisma/client";
-import { getCustomerByApiKey } from "./customer.service";
+import { PackageStatus } from "@/generated/prisma/client";
 
 const resolveStatus = (statusParam: number): PackageStatus => {
   const packageStatus = StatusMap[statusParam as keyof typeof StatusMap];

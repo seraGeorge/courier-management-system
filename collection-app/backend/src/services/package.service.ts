@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { PackageStatus, Prisma } from "@/generated/prisma/client";
 import { StatusMap } from "@/lib/constants/package-status";
-import { RawPackageUpdateInput } from "@/validations/package";
+import { generateSignature } from "@/utils/hmac";
+import axios from "axios";
 
 const handlePrismaError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -66,23 +67,15 @@ export const createPackage = async (data: {
 
   if (!region) throw new Error("INVALID_REGION");
 
-  const { regionCode, ...rest } = data;
-
   return prisma.package
     .create({
       data: {
         ...data,
-        sale: {
-          create: {
-            amount: calculateAmount(data.weight),
-          },
-        },
+        sale: { create: { amount: calculateAmount(data.weight) } },
       },
       include: {
         sale: true,
-        region: {
-          select: { code: true, name: true },
-        },
+        region: { select: { code: true, name: true } },
       },
     })
     .catch(handlePrismaError);
@@ -123,45 +116,112 @@ export const updatePackageStatus = async (
     .catch(handlePrismaError);
 };
 
-export const createRawPackageUpdates = async (
-  updates: RawPackageUpdateInput[],
-) => {
-  return prisma.rawPackageUpdate.createMany({
-    data: updates,
+export const createRawPackageUpdates = async (data: {
+  batchId: string;
+  updates: { eventId: string; trackingId: string; status: PackageStatus }[];
+}) => {
+  const { batchId, updates } = data;
+
+  // createMany skips rows violating unique constraints (eventId) rather than
+  // throwing — this makes redelivery of an already-staged batch a no-op.
+  const result = await prisma.rawPackageUpdate.createMany({
+    data: updates.map((u) => ({
+      batchId,
+      eventId: u.eventId,
+      trackingId: u.trackingId,
+      status: u.status,
+    })),
     skipDuplicates: true,
   });
-};
 
+  return { batchId, staged: result.count, received: updates.length };
+};
 export const processRawUpdates = async () => {
-  const updates = await prisma.rawPackageUpdate.findMany({
-    where: {
-      processed: false,
-    },
+  // 1. Apply anything not yet applied
+  const unapplied = await prisma.rawPackageUpdate.findMany({
+    where: { appliedAt: null },
+    orderBy: { receivedAt: "asc" },
+    take: 200,
   });
 
-  if (updates.length === 0) {
-    return;
+  if (unapplied.length > 0) {
+    console.log(`[ETL] Applying ${unapplied.length} update(s)`);
   }
 
-  console.log(`[ETL] Processing ${updates.length} update(s)`);
-  for (const update of updates) {
-    await prisma.$transaction([
-      prisma.package.updateMany({
-        where: {
-          trackingId: update.trackingId,
+  for (const update of unapplied) {
+    try {
+      const existing = await prisma.package.findUnique({
+        where: { trackingId: update.trackingId },
+      });
+
+      if (!existing) {
+        console.error(
+          `[ETL] Package not found for trackingId ${update.trackingId} (eventId ${update.eventId}) — skipping row, not the batch.`,
+        );
+        continue; // left appliedAt: null — retried next tick; revisit if this needs a cutoff
+      }
+
+      await prisma.$transaction([
+        prisma.package.update({
+          where: { trackingId: update.trackingId }, // unique — no need for updateMany
+          data: { status: update.status },
+        }),
+        prisma.rawPackageUpdate.update({
+          where: { id: update.id },
+          data: { appliedAt: new Date() },
+        }),
+      ]);
+    } catch (err) {
+      console.error(`[ETL] Failed to apply update ${update.id}`, err);
+      // appliedAt stays null — retried next tick
+    }
+  }
+
+  // 2. Confirm anything applied but not yet confirmed, grouped by batch
+  const unconfirmed = await prisma.rawPackageUpdate.findMany({
+    where: { appliedAt: { not: null }, confirmedAt: null },
+    orderBy: { receivedAt: "asc" },
+  });
+
+  const byBatch = new Map<string, typeof unconfirmed>();
+  for (const u of unconfirmed) {
+    if (!byBatch.has(u.batchId)) byBatch.set(u.batchId, []);
+    byBatch.get(u.batchId)!.push(u);
+  }
+
+  for (const [batchId, rows] of byBatch) {
+    try {
+      const payload = JSON.stringify({
+        batchId,
+        confirmations: rows.map((r) => ({
+          eventId: r.eventId,
+          trackingId: r.trackingId,
+          status: r.status,
+        })),
+      });
+
+      await axios.post(
+        `${process.env.LOGISTICS_BASE_URL}/api/etl/confirm`,
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.COLLECTION_API_KEY!,
+            "x-signature": generateSignature(
+              payload,
+              process.env.COLLECTION_SECRET_KEY!,
+            ),
+          },
         },
-        data: {
-          status: update.status,
-        },
-      }),
-      prisma.rawPackageUpdate.update({
-        where: {
-          id: update.id,
-        },
-        data: {
-          processed: true,
-        },
-      }),
-    ]);
+      );
+
+      await prisma.rawPackageUpdate.updateMany({
+        where: { id: { in: rows.map((r) => r.id) } },
+        data: { confirmedAt: new Date() },
+      });
+    } catch (err) {
+      console.error(`[ETL] Failed to confirm batch ${batchId}`, err);
+      // confirmedAt stays null — retried next tick, no reapplication
+    }
   }
 };

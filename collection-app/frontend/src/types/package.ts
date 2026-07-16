@@ -1,4 +1,5 @@
 import { Region } from "./region";
+import { PackageStatus } from "./package-status";
 
 export interface Package {
   trackingId: string;
@@ -8,7 +9,7 @@ export interface Package {
   toAddress: string;
   weight: number;
   region: Region;
-  status: string;
+  status: PackageStatus;
   delayReason: string | null;
   createdAt: string;
 };

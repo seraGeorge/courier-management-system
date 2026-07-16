@@ -1,4 +1,9 @@
-import { listPackages, addPackage, patchPackageStatus, receiveRawUpdates } from "@/controllers/package.controller";
+import {
+  listPackages,
+  addPackage,
+  patchPackageStatus,
+} from "@/controllers/package.controller";
+import { receiveRawUpdates } from "@/controllers/rawPackageUpdates.controller";
 import { Router } from "express";
 
 const router = Router();

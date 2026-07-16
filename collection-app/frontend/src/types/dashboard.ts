@@ -1,4 +1,5 @@
 import { Package } from "./package";
+import { PackageStatus } from "./package-status";
 
 export interface DashboardSection {
   count: number;
@@ -11,4 +12,15 @@ export interface DashboardData {
   delayedPackages: DashboardSection;
   deliveredPackages: DashboardSection;
   outForDeliveryPackages: DashboardSection;
+  statusSections: Record<PackageStatus, DashboardSection>;
+  statusGraph: {
+    totalPackages: number;
+    statuses: Array<{
+      status: PackageStatus;
+      label: string;
+      count: number;
+      packages: Package[];
+      percentage: number;
+    }>;
+  };
 };
