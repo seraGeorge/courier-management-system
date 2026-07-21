@@ -6,6 +6,7 @@ interface PackageSectionProps {
   packages: Package[];
   showDelayReason?: boolean;
   onMarkDelivered?: (trackingId: string) => void;
+  onStartDelivery?: (trackingId: string) => void;
 }
 
 const STATUS_META: Record<
@@ -59,6 +60,7 @@ export default function PackageSection({
   packages,
   showDelayReason = false,
   onMarkDelivered,
+  onStartDelivery,
 }: PackageSectionProps) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -129,16 +131,16 @@ export default function PackageSection({
                       </div>
                     )}
                   </div>
-                  {pkg.status !== "OUT_FOR_DELIVERY" ? (
-                    <span
-                      className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 ${meta.pill}`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${meta.dot} flex-shrink-0`}
-                      />
-                      {meta.label}
-                    </span>
-                  ) : (
+                  {pkg.status === "SCHEDULED_FOR_DELIVERY" ? (
+                    onStartDelivery && (
+                      <button
+                        onClick={() => onStartDelivery(pkg.trackingId)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 text-xs font-semibold transition-colors shadow-sm"
+                      >
+                        Start Delivery
+                      </button>
+                    )
+                  ) : pkg.status === "OUT_FOR_DELIVERY" ? (
                     onMarkDelivered && (
                       <button
                         onClick={() => onMarkDelivered(pkg.trackingId)}
@@ -147,6 +149,15 @@ export default function PackageSection({
                         Mark Delivered
                       </button>
                     )
+                  ) : (
+                    <span
+                      className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 ${meta.pill}`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${meta.dot} flex-shrink-0`}
+                      />
+                      {meta.label}
+                    </span>
                   )}
                 </div>
               </div>

@@ -76,6 +76,15 @@ export default function DashboardPageContent() {
     );
   }
 
+  const handleStartDelivery = async (trackingId: string) => {
+    try {
+      await updatePackageStatus(trackingId, 6);
+      await fetchDashboard();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleMarkDelivered = async (trackingId: string) => {
     try {
       await updatePackageStatus(trackingId, 7);
@@ -314,6 +323,11 @@ export default function DashboardPageContent() {
             title={meta.title}
             packages={section.packages}
             showDelayReason={meta.showDelayReason}
+            onStartDelivery={
+              status === "SCHEDULED_FOR_DELIVERY"
+                ? handleStartDelivery
+                : undefined
+            }
             onMarkDelivered={
               meta.allowMarkDelivered ? handleMarkDelivered : undefined
             }
