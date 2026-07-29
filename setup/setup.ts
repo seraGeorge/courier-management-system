@@ -3,7 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 const LOGISTICS_URL = "http://localhost:5001/api";
-
+const COLLECTION_WEBHOOK_URL =
+  process.env.COLLECTION_WEBHOOK_URL ?? "http://localhost:5000/api/raw-updates";
+  
 const envPath = path.join(process.cwd(), "collection-app", "backend", ".env");
 
 async function waitForBackend() {
@@ -27,7 +29,7 @@ async function registerCustomer() {
   const { data } = await axios.post(`${LOGISTICS_URL}/customers`, {
     name: "Collection App",
     email: "collection@example.com",
-    webhookUrl: "http://collection_backend:5000/api/raw-updates",
+    webhookUrl: COLLECTION_WEBHOOK_URL,
   });
 
   return data.data;
@@ -36,10 +38,13 @@ async function registerCustomer() {
 function updateEnv(apiKey: string, secretKey: string) {
   let env = fs.readFileSync(envPath, "utf8");
 
-  env = env.replace(/^LOGISTICS_API_KEY=.*$/m, `LOGISTICS_API_KEY=${apiKey}`);
+  env = env.replace(
+    /^LOGISTICS_API_KEY\s*=.*$/m,
+    `LOGISTICS_API_KEY=${apiKey}`,
+  );
 
   env = env.replace(
-    /^LOGISTICS_SECRET_KEY=.*$/m,
+    /^LOGISTICS_SECRET_KEY\s*=.*$/m,
     `LOGISTICS_SECRET_KEY=${secretKey}`,
   );
 

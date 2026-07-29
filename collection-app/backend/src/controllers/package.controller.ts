@@ -1,4 +1,3 @@
-import { createPackageWebhook } from "@/services/notifyLogistics.service";
 import {
   getPackages,
   createPackage,
@@ -50,18 +49,31 @@ export const addPackage = async (req: Request, res: Response) => {
     );
   }
   const trackingId = `TRK-${crypto.randomUUID().slice(0, 8)}`;
-  const newPackage = await createPackage({
-    ...result.data,
-    trackingId,
-  });
 
-  await createPackageWebhook({
-    ...result.data,
-    trackingId,
-  });
-  res
-    .status(201)
-    .json(buildResponse(201, "Package created successfully", newPackage));
+  try {
+    const newPackage = await createPackage({
+      ...result.data,
+      trackingId,
+    });
+
+    return res
+      .status(201)
+      .json(buildResponse(201, "Package created successfully", newPackage));
+  } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_REGION") {
+      return res.status(400).json(
+        buildResponse(400, "Invalid region code", null, {
+          code: "VALIDATION_ERROR",
+        }),
+      );
+    }
+
+    return res.status(500).json(
+      buildResponse(500, "Internal Server Error", null, {
+        code: "INTERNAL_SERVER_ERROR",
+      }),
+    );
+  }
 };
 
 export const patchPackageStatus = async (req: Request, res: Response) => {

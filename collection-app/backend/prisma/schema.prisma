@@ -23,6 +23,12 @@ enum PackageStatus {
   DELAYED
   DELIVERED
 }
+
+enum SyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
 model Region {
   id        String   @id @default(uuid())
   code      String   @unique
@@ -45,6 +51,8 @@ model Package {
   weight Float
 
   status      PackageStatus @default(TO_BE_PICKED_UP)
+  syncStatus  SyncStatus    @default(PENDING)
+  syncedAt    DateTime?
   delayReason String?
 
   regionCode String
@@ -61,6 +69,19 @@ model Sale {
   createdAt DateTime @default(now())
 
   package Package @relation(fields: [packageId], references: [id])
+}
+
+model OutboundWebhook {
+  id          String    @id @default(uuid())
+  eventType   String
+  payload     Json
+  trackingId  String
+  attempts    Int       @default(0)
+  nextRetryAt DateTime  @default(now())
+  deliveredAt DateTime?
+  lastError   String?
+
+  @@index([deliveredAt, nextRetryAt])
 }
 
 model RawPackageUpdate {

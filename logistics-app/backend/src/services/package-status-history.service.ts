@@ -90,7 +90,8 @@ export const markUpdatesProcessed = async (eventIds: string[]) => {
 // orchestration — this is the piece that's currently missing
 export const runEtlPushForCustomer = async (customer: Customer) => {
   const { updates, supersededEventIds } = await getPendingUpdates(customer.id);
-
+  console.log("[ETL] Pending updates:", updates.length);
+  console.log(updates);
   if (supersededEventIds.length) {
     await markUpdatesProcessed(supersededEventIds);
   }

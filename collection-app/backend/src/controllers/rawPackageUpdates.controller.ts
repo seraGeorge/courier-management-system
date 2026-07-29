@@ -4,6 +4,7 @@ import { RawPackageUpdatesSchema } from "@/validations/rawPackage";
 import type { Request, Response } from "express";
 
 export const receiveRawUpdates = async (req: Request, res: Response) => {
+  console.log("[Collection] Raw updates received");
   const result = RawPackageUpdatesSchema.safeParse(req.body);
 
   if (!result.success) {

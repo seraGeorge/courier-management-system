@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { PackageStatus, Prisma } from "@/generated/prisma/client";
+import { PackageStatus, Prisma, SyncStatus } from "@/generated/prisma/client";
 import { StatusMap } from "@/lib/constants/package-status";
+import { PACKAGE_CREATED_EVENT } from "@/services/notifyLogistics.service";
 import { generateSignature } from "@/utils/hmac";
 import axios from "axios";
 
@@ -42,6 +43,8 @@ export const getPackages = async (
       toAddress: true,
       weight: true,
       status: true,
+      syncStatus: true,
+      syncedAt: true,
       delayReason: true,
       createdAt: true,
       region: {
@@ -67,18 +70,39 @@ export const createPackage = async (data: {
 
   if (!region) throw new Error("INVALID_REGION");
 
-  return prisma.package
-    .create({
+  const webhookPayload = {
+    senderName: data.senderName,
+    receiverName: data.receiverName,
+    fromAddress: data.fromAddress,
+    toAddress: data.toAddress,
+    weight: data.weight,
+    regionCode: data.regionCode,
+    trackingId: data.trackingId,
+  };
+
+  return prisma.$transaction(async (tx) => {
+    const newPackage = await tx.package.create({
       data: {
         ...data,
+        syncStatus: SyncStatus.PENDING,
         sale: { create: { amount: calculateAmount(data.weight) } },
       },
       include: {
         sale: true,
         region: { select: { code: true, name: true } },
       },
-    })
-    .catch(handlePrismaError);
+    });
+
+    await tx.outboundWebhook.create({
+      data: {
+        eventType: PACKAGE_CREATED_EVENT,
+        payload: webhookPayload,
+        trackingId: data.trackingId,
+      },
+    });
+
+    return newPackage;
+  }).catch(handlePrismaError);
 };
 
 export const updatePackageStatus = async (

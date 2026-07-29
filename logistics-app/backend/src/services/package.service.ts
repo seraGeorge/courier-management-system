@@ -52,6 +52,14 @@ export const createPackage = async (
 
   if (!region) throw new Error("INVALID_REGION");
 
+  const existing = await prisma.package.findUnique({
+    where: { trackingId: data.trackingId },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
   // Once a package is created it should be updated in the package status history.
   // This will help when connecting collection-app.
   const packageData = await prisma.package.create({

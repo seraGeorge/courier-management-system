@@ -7,6 +7,8 @@ import {
   incrementFailureCount,
   resetFailureCount,
 } from "@/services/customer.service";
+
+console.log("[ETL] push-status-updates module loaded");
 const isAuthWebhookError = (error: unknown) =>
   axios.isAxiosError(error) && error.response?.status === 401;
 
@@ -29,6 +31,7 @@ const getAxiosResponseDetails = (error: unknown) => {
 };
 
 let isRunning = false;
+console.log("[ETL] Registering cron job");
 
 cron.schedule("* * * * *", async () => {
   if (isRunning) {
