@@ -64,10 +64,14 @@ export default function TrackPackageForm() {
   const [trackingId, setTrackingId] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [result, setResult] = useState<TrackResult | null>(null);
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
+
+  const resetCaptcha = () => {
+    recaptchaRef.current?.reset();
+    setCaptchaToken(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,17 +90,18 @@ export default function TrackPackageForm() {
         captchaVerified: captchaToken ? 1 : 0,
       });
       setResult(response.data);
-      recaptchaRef.current?.reset();
-      setCaptchaToken(null);
+      resetCaptcha();
     } catch (err: unknown) {
       const apiError = err as ApiResponse<null>;
       const code = apiError.error?.code;
       const serverMessage = apiError.message?.trim();
 
       if (code === ErrorCode.VALIDATION_ERROR) {
-        setErrors(apiError.error?.fieldErrors ?? {});
+        const fieldErrors = apiError.error?.fieldErrors ?? {};
+        const firstFieldError = Object.values(fieldErrors).flat()[0];
         setError(
           serverMessage ||
+            firstFieldError ||
             "Please fix the highlighted fields and try again.",
         );
       } else if (code === ErrorCode.CAPTCHA_FAILED) {
@@ -104,12 +109,11 @@ export default function TrackPackageForm() {
           serverMessage ||
             "Captcha verification failed. Please complete the captcha and try again.",
         );
-        recaptchaRef.current?.reset();
-        setCaptchaToken(null);
+        resetCaptcha();
       } else if (code === ErrorCode.PACKAGE_NOT_FOUND) {
         setError(
           serverMessage ||
-            `No package found for tracking ID "${trackingId.trim()}". Check the ID and try again.`,
+            `Invalid tracking ID "${trackingId.trim()}". No package was found with this ID.`,
         );
       } else if (code === ErrorCode.INTERNAL_SERVER_ERROR) {
         setError(
@@ -150,22 +154,16 @@ export default function TrackPackageForm() {
             onChange={(e) => {
               setTrackingId(e.target.value);
               setError(null);
-              setErrors({});
               setResult(null);
+              resetCaptcha();
             }}
             placeholder="e.g. 9fb1f171-2d59-40ee-b631-1d9ecc8d0a41"
-            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-slate-900"
+            className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 font-mono text-slate-900 ${
+              error
+                ? "border-red-400 focus:ring-red-400"
+                : "border-slate-300 focus:ring-blue-500"
+            }`}
           />
-          {errors.trackingId?.map((e) => (
-            <p key={e} className="text-red-500 text-xs mt-1">
-              {e}
-            </p>
-          ))}
-          {errors.captchaVerified?.map((e) => (
-            <p key={e} className="text-red-500 text-xs mt-1">
-              {e}
-            </p>
-          ))}
         </div>
 
         <div className="flex justify-center">

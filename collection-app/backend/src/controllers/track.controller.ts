@@ -37,7 +37,7 @@ export const track = async (req: Request, res: Response) => {
       return res.status(404).json(
         buildResponse(
           404,
-          `No package found for tracking ID "${trackingId}". Check the ID and try again.`,
+          `Invalid tracking ID "${trackingId}". No package was found with this ID.`,
           null,
           {
             code: "PACKAGE_NOT_FOUND",
