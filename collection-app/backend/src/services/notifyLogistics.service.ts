@@ -110,24 +110,23 @@ export const processOutboundWebhooks = async () => {
         throw new Error(`Unknown outbound event type: ${event.eventType}`);
       }
 
-      const updates = [
-        prisma.outboundWebhook.update({
-          where: { id: event.id },
-          data: { deliveredAt: new Date(), lastError: null },
-        }),
-      ];
-
-      // Only package-create events own the package syncStatus lifecycle.
       if (event.eventType === PACKAGE_CREATED_EVENT) {
-        updates.push(
+        await prisma.$transaction([
+          prisma.outboundWebhook.update({
+            where: { id: event.id },
+            data: { deliveredAt: new Date(), lastError: null },
+          }),
           prisma.package.update({
             where: { trackingId: event.trackingId },
             data: { syncStatus: SyncStatus.SYNCED, syncedAt: new Date() },
           }),
-        );
+        ]);
+      } else {
+        await prisma.outboundWebhook.update({
+          where: { id: event.id },
+          data: { deliveredAt: new Date(), lastError: null },
+        });
       }
-
-      await prisma.$transaction(updates);
     } catch (error) {
       const nextAttempts = event.attempts + 1;
       const errorMessage = getErrorMessage(error);
@@ -138,26 +137,29 @@ export const processOutboundWebhooks = async () => {
       );
 
       if (!isRetryableError(error) || nextAttempts >= MAX_ATTEMPTS) {
-        const updates = [
-          prisma.outboundWebhook.update({
+        if (event.eventType === PACKAGE_CREATED_EVENT) {
+          await prisma.$transaction([
+            prisma.outboundWebhook.update({
+              where: { id: event.id },
+              data: {
+                attempts: nextAttempts,
+                lastError: errorMessage,
+              },
+            }),
+            prisma.package.update({
+              where: { trackingId: event.trackingId },
+              data: { syncStatus: SyncStatus.FAILED },
+            }),
+          ]);
+        } else {
+          await prisma.outboundWebhook.update({
             where: { id: event.id },
             data: {
               attempts: nextAttempts,
               lastError: errorMessage,
             },
-          }),
-        ];
-
-        if (event.eventType === PACKAGE_CREATED_EVENT) {
-          updates.push(
-            prisma.package.update({
-              where: { trackingId: event.trackingId },
-              data: { syncStatus: SyncStatus.FAILED },
-            }),
-          );
+          });
         }
-
-        await prisma.$transaction(updates);
         continue;
       }
 
