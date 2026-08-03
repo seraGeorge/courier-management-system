@@ -4,31 +4,61 @@ import { useState, useRef } from "react";
 import ReCAPTCHA from "react-google-recaptcha";
 import { trackPackage } from "@/services/track";
 import type { TrackResult } from "@/types/track";
-import { ApiError, ApiResponse, ErrorCode } from "@/services/fetch";
+import {
+  PACKAGE_STATUS_DESCRIPTIONS,
+  PACKAGE_STATUS_LABELS,
+  PACKAGE_STATUS_SUBSTEPS,
+  PACKAGE_TRACK_STEPS,
+  type PackageStatus,
+} from "@/types/package-status";
+import { ApiResponse, ErrorCode } from "@/services/fetch";
 import AppEnv from "@/config/env";
 
-const STATUS_LABELS: Record<string, string> = {
-  TO_BE_PICKED_UP: "Awaiting Pickup",
-  PICKED_UP: "Picked Up",
-  IN_TRANSIT: "In Transit",
-  DELAYED: "Delayed",
-  DELIVERED: "Delivered",
-};
-
-const STATUS_COLORS: Record<string, string> = {
+const STATUS_COLORS: Record<PackageStatus, string> = {
   TO_BE_PICKED_UP: "bg-slate-100 text-slate-700 border-slate-200",
   PICKED_UP: "bg-blue-100 text-blue-700 border-blue-200",
+  PROCESSING: "bg-indigo-100 text-indigo-700 border-indigo-200",
   IN_TRANSIT: "bg-amber-100 text-amber-700 border-amber-200",
+  SCHEDULED_FOR_DELIVERY: "bg-violet-100 text-violet-700 border-violet-200",
+  OUT_FOR_DELIVERY: "bg-orange-100 text-orange-700 border-orange-200",
   DELAYED: "bg-red-100 text-red-700 border-red-200",
   DELIVERED: "bg-emerald-100 text-emerald-700 border-emerald-200",
 };
 
-const STATUS_STEPS = [
-  "TO_BE_PICKED_UP",
-  "PICKED_UP",
-  "IN_TRANSIT",
-  "DELIVERED",
-];
+function formatTrackDate(value: string) {
+  return new Date(value).toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function resolveProgressStatus(result: TrackResult): PackageStatus {
+  if (result.status !== "DELAYED") return result.status;
+
+  for (let i = result.history.length - 1; i >= 0; i--) {
+    if (result.history[i].status !== "DELAYED") {
+      return result.history[i].status;
+    }
+  }
+
+  return "IN_TRANSIT";
+}
+
+function timestampForStep(
+  step: PackageStatus,
+  result: TrackResult,
+): string | null {
+  if (step === "TO_BE_PICKED_UP") return result.createdAt;
+
+  const match = [...result.history]
+    .reverse()
+    .find((event) => event.status === step);
+
+  return match?.at ?? null;
+}
 
 export default function TrackPackageForm() {
   const [trackingId, setTrackingId] = useState("");
@@ -60,28 +90,53 @@ export default function TrackPackageForm() {
       setCaptchaToken(null);
     } catch (err: unknown) {
       const apiError = err as ApiResponse<null>;
+      const code = apiError.error?.code;
+      const serverMessage = apiError.message?.trim();
 
-      if (apiError.error?.code === ErrorCode.VALIDATION_ERROR) {
-        setErrors(apiError.error.fieldErrors ?? {});
-      } else if ((err as ApiError)?.code === ErrorCode.PACKAGE_NOT_FOUND) {
-        setError("No package found with this tracking ID.");
+      if (code === ErrorCode.VALIDATION_ERROR) {
+        setErrors(apiError.error?.fieldErrors ?? {});
+        setError(
+          serverMessage ||
+            "Please fix the highlighted fields and try again.",
+        );
+      } else if (code === ErrorCode.CAPTCHA_FAILED) {
+        setError(
+          serverMessage ||
+            "Captcha verification failed. Please complete the captcha and try again.",
+        );
+        recaptchaRef.current?.reset();
+        setCaptchaToken(null);
+      } else if (code === ErrorCode.PACKAGE_NOT_FOUND) {
+        setError(
+          serverMessage ||
+            `No package found for tracking ID "${trackingId.trim()}". Check the ID and try again.`,
+        );
+      } else if (code === ErrorCode.INTERNAL_SERVER_ERROR) {
+        setError(
+          serverMessage ||
+            "We couldn't load the package timeline right now. Please try again in a moment.",
+        );
       } else {
-        setError("Something went wrong. Please try again.");
+        setError(
+          "Unable to track this package right now. Check your connection and try again.",
+        );
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const currentStep = result
-    ? result.status === "DELAYED"
-      ? STATUS_STEPS.indexOf("IN_TRANSIT")
-      : STATUS_STEPS.indexOf(result.status)
+  const progressStatus = result ? resolveProgressStatus(result) : null;
+  const currentStep = progressStatus
+    ? PACKAGE_TRACK_STEPS.indexOf(
+        progressStatus as (typeof PACKAGE_TRACK_STEPS)[number],
+      )
     : -1;
+  const isDelayed = result?.status === "DELAYED";
+  const isDelivered = result?.status === "DELIVERED";
 
   return (
     <div className="space-y-6">
-      {/* Search form */}
       <form
         onSubmit={handleSubmit}
         className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm"
@@ -141,13 +196,11 @@ export default function TrackPackageForm() {
         </button>
       </form>
 
-      {/* Result */}
       {result && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-            <div>
-              <p className="text-xs text-slate-400 font-mono mb-1">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 gap-3">
+            <div className="min-w-0">
+              <p className="text-xs text-slate-400 font-mono mb-1 truncate">
                 {result.trackingId}
               </p>
               <h2 className="text-lg font-semibold text-slate-900">
@@ -155,60 +208,127 @@ export default function TrackPackageForm() {
               </h2>
             </div>
             <span
-              className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${STATUS_COLORS[result.status] ?? "bg-slate-100 text-slate-700"}`}
+              className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border ${STATUS_COLORS[result.status]}`}
             >
-              {STATUS_LABELS[result.status] ?? result.status}
+              {PACKAGE_STATUS_LABELS[result.status]}
             </span>
           </div>
 
-          {/* Progress timeline */}
           <div className="px-6 py-5 border-b border-slate-100">
-            <div className="flex items-center justify-between relative">
-              <div className="absolute left-0 right-0 top-3 h-0.5 bg-slate-200 z-0" />
-              <div
-                className="absolute left-0 top-3 h-0.5 bg-blue-500 z-0 transition-all"
-                style={{
-                  width:
-                    currentStep === 0
-                      ? "0%"
-                      : currentStep === 1
-                        ? "33%"
-                        : currentStep === 2
-                          ? "66%"
-                          : currentStep === 3
-                            ? "100%"
-                            : "0%",
-                }}
-              />
-              {STATUS_STEPS.map((step, i) => (
-                <div
-                  key={step}
-                  className="flex flex-col items-center gap-2 z-10"
-                >
-                  <div
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors ${
-                      i < currentStep
-                        ? "bg-blue-500 border-blue-500 text-white"
-                        : i === currentStep
-                          ? result.status === "DELAYED"
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-4">
+              Delivery Progress
+            </p>
+            <ol className="relative space-y-0">
+              {PACKAGE_TRACK_STEPS.map((step, i) => {
+                const completed = i < currentStep || isDelivered;
+                const current = i === currentStep && !isDelivered;
+                const upcoming = i > currentStep && !isDelivered;
+                const timestamp = timestampForStep(step, result);
+                const substeps = PACKAGE_STATUS_SUBSTEPS[step] ?? [];
+                const showDetails = completed || current;
+
+                return (
+                  <li key={step} className="relative flex gap-4 pb-6 last:pb-0">
+                    {i < PACKAGE_TRACK_STEPS.length - 1 && (
+                      <span
+                        className={`absolute left-2.5 top-6 bottom-0 w-0.5 ${
+                          i < currentStep || isDelivered
+                            ? "bg-blue-500"
+                            : "bg-slate-200"
+                        }`}
+                        aria-hidden
+                      />
+                    )}
+
+                    <div
+                      className={`relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold ${
+                        completed
+                          ? "bg-blue-500 border-blue-500 text-white"
+                          : current && isDelayed
                             ? "bg-red-500 border-red-500 text-white"
-                            : "bg-blue-500 border-blue-500 text-white"
-                          : "bg-white border-slate-300 text-slate-400"
-                    }`}
-                  >
-                    {i < currentStep ? "✓" : i + 1}
-                  </div>
-                  <span
-                    className={`text-xs text-center max-w-16 leading-tight ${i <= currentStep ? "text-slate-700 font-medium" : "text-slate-400"}`}
-                  >
-                    {STATUS_LABELS[step]}
-                  </span>
-                </div>
-              ))}
-            </div>
+                            : current
+                              ? "bg-blue-500 border-blue-500 text-white ring-4 ring-blue-100"
+                              : "bg-white border-slate-300 text-slate-400"
+                      }`}
+                    >
+                      {completed ? "✓" : i + 1}
+                    </div>
+
+                    <div className="min-w-0 flex-1 pt-0.5">
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                        <p
+                          className={`text-sm font-semibold ${
+                            upcoming ? "text-slate-400" : "text-slate-900"
+                          }`}
+                        >
+                          {PACKAGE_STATUS_LABELS[step]}
+                          {current && (
+                            <span
+                              className={`ml-2 text-[10px] font-bold uppercase tracking-wide ${
+                                isDelayed ? "text-red-600" : "text-blue-600"
+                              }`}
+                            >
+                              {isDelayed ? "Delayed here" : "Current"}
+                            </span>
+                          )}
+                        </p>
+                        {timestamp && showDetails && (
+                          <time className="text-xs text-slate-400">
+                            {formatTrackDate(timestamp)}
+                          </time>
+                        )}
+                      </div>
+
+                      {showDetails && (
+                        <>
+                          <p
+                            className={`mt-1 text-sm leading-relaxed ${
+                              upcoming ? "text-slate-400" : "text-slate-600"
+                            }`}
+                          >
+                            {current && isDelayed
+                              ? PACKAGE_STATUS_DESCRIPTIONS.DELAYED
+                              : PACKAGE_STATUS_DESCRIPTIONS[step]}
+                          </p>
+
+                          {substeps.length > 0 && (
+                            <ul className="mt-2 space-y-1.5 border-l-2 border-slate-100 pl-3">
+                              {substeps.map((detail) => (
+                                <li
+                                  key={detail}
+                                  className={`text-xs leading-snug ${
+                                    completed
+                                      ? "text-slate-500"
+                                      : current
+                                        ? "text-slate-600"
+                                        : "text-slate-400"
+                                  }`}
+                                >
+                                  <span
+                                    className={
+                                      completed
+                                        ? "text-blue-500 mr-1.5"
+                                        : current
+                                          ? "text-amber-500 mr-1.5"
+                                          : "text-slate-300 mr-1.5"
+                                    }
+                                  >
+                                    {completed ? "✓" : "•"}
+                                  </span>
+                                  {detail}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
           </div>
 
-          {/* Details */}
           <div className="px-6 py-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
@@ -220,13 +340,12 @@ export default function TrackPackageForm() {
               <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
                 <p className="text-xs text-slate-400 mb-1">Current Status</p>
                 <p className="text-sm font-medium text-slate-800">
-                  {STATUS_LABELS[result.status] ?? result.status}
+                  {PACKAGE_STATUS_LABELS[result.status]}
                 </p>
               </div>
             </div>
 
-            {/* Delay banner */}
-            {result.status === "DELAYED" && result.delayReason && (
+            {isDelayed && result.delayReason && (
               <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex gap-3">
                 <span className="text-red-500 mt-0.5">⚠</span>
                 <div>
@@ -238,7 +357,6 @@ export default function TrackPackageForm() {
               </div>
             )}
 
-            {/* Bill of sale */}
             {result.sale && (
               <div className="border-t border-slate-100 pt-4">
                 <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-3">

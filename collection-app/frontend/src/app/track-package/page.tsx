@@ -9,7 +9,7 @@ export default function TrackPage() {
         </p>
         <h1 className="text-2xl font-bold text-white">Track Your Package</h1>
         <p className="text-blue-200 text-sm mt-1">
-          Enter your tracking ID to see the latest delivery movement.
+          Enter your tracking ID to see every step of the delivery journey.
         </p>
       </div>
       <div className="w-full">

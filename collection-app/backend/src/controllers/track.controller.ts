@@ -8,7 +8,7 @@ export const track = async (req: Request, res: Response) => {
 
   if (!result.success) {
     return res.status(400).json(
-      buildResponse(400, "Invalid request data", null, {
+      buildResponse(400, "Please fix the highlighted fields and try again.", null, {
         code: "VALIDATION_ERROR",
         fieldErrors: result.error.flatten().fieldErrors,
       }),
@@ -19,31 +19,61 @@ export const track = async (req: Request, res: Response) => {
 
   if (!captchaVerified) {
     return res.status(400).json(
-      buildResponse(400, "Captcha verification failed", null, {
-        code: "CAPTCHA_FAILED",
-      }),
+      buildResponse(
+        400,
+        "Captcha verification failed. Please complete the captcha and try again.",
+        null,
+        {
+          code: "CAPTCHA_FAILED",
+        },
+      ),
     );
   }
 
-  const pkg = await trackPackage(trackingId);
+  try {
+    const pkg = await trackPackage(trackingId);
 
-  if (!pkg) {
-    return res.status(404).json(
-      buildResponse(404, "Package not found", null, {
-        code: "PACKAGE_NOT_FOUND",
+    if (!pkg) {
+      return res.status(404).json(
+        buildResponse(
+          404,
+          `No package found for tracking ID "${trackingId}". Check the ID and try again.`,
+          null,
+          {
+            code: "PACKAGE_NOT_FOUND",
+          },
+        ),
+      );
+    }
+
+    return res.status(200).json(
+      buildResponse(200, "Package retrieved successfully", {
+        trackingId: pkg.trackingId,
+        status: pkg.status,
+        region: pkg.region,
+        delayReason: pkg.delayReason,
+        createdAt: pkg.createdAt,
+        sale: pkg.sale
+          ? { amount: pkg.sale.amount, createdAt: pkg.sale.createdAt }
+          : null,
+        history: pkg.history.map((event) => ({
+          status: event.status,
+          delayReason: event.delayReason,
+          at: event.receivedAt,
+        })),
       }),
     );
+  } catch (err) {
+    console.error("[Track] Failed to load package timeline", err);
+    return res.status(500).json(
+      buildResponse(
+        500,
+        "We couldn't load the package timeline right now. Please try again in a moment.",
+        null,
+        {
+          code: "INTERNAL_SERVER_ERROR",
+        },
+      ),
+    );
   }
-
-  return res.status(200).json(
-    buildResponse(200, "Package retrieved successfully", {
-      trackingId: pkg.trackingId,
-      status: pkg.status,
-      region: pkg.region,
-      delayReason: pkg.delayReason,
-      sale: pkg.sale
-        ? { amount: pkg.sale.amount, createdAt: pkg.sale.createdAt }
-        : null,
-    }),
-  );
 };
