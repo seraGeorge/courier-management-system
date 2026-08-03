@@ -17,13 +17,14 @@ export const processRawUpdates = async () => {
       });
 
       if (!existing) {
-        console.error(
-          `[ETL] Package not found for trackingId ${update.trackingId} (eventId ${update.eventId}) — skipping row, not the whole batch.`,
+        // Collection owns package creates; unknown trackingIds will not appear later.
+        console.warn(
+          `[ETL] Package not found for trackingId ${update.trackingId} (eventId ${update.eventId}) — marking applied and skipping.`,
         );
-        // Decide: mark appliedAt now to stop retrying a row that'll never resolve,
-        // or leave null to keep retrying in case the package arrives later via webhook.
-        // Leaving null assumes eventual consistency; if you're confident this can't
-        // self-heal, mark it applied here so it doesn't loop forever.
+        await prisma.rawPackageUpdate.update({
+          where: { id: update.id },
+          data: { appliedAt: new Date() },
+        });
         continue;
       }
 
@@ -65,21 +66,21 @@ export const processRawUpdates = async () => {
           status: r.status,
         })),
       });
+      console.log("API_URL =", process.env.API_URL);
+      console.log("LOGISTICS_API_KEY =", process.env.LOGISTICS_API_KEY);
+      console.log("LOGISTICS_SECRET_KEY =", process.env.LOGISTICS_SECRET_KEY);
+      const secret = process.env.LOGISTICS_SECRET_KEY!;
 
-      await axios.post(
-        `${process.env.LOGISTICS_BASE_URL}/api/etl/confirm`,
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.COLLECTION_API_KEY!,
-            "x-signature": generateSignature(
-              payload,
-              process.env.COLLECTION_SECRET_KEY!,
-            ),
-          },
+      console.log("secret length:", secret?.length);
+      console.log("secret value:", JSON.stringify(secret));
+      const signature = generateSignature(payload, secret);
+      await axios.post(`${process.env.API_URL}/etl/confirm`, payload, {
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.LOGISTICS_API_KEY!,
+          "x-signature": signature,
         },
-      );
+      });
 
       await prisma.rawPackageUpdate.updateMany({
         where: { id: { in: rows.map((r) => r.id) } },

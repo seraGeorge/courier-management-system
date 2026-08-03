@@ -6,6 +6,7 @@ import regionRoutes from "./region.routes";
 import webhookRoutes from "./webhooks";
 import customerRoutes from "./customer.routes";
 import healthRoutes from "./health.routes";
+import etlRoutes from "./etl.routes";
 
 const router = Router();
 
@@ -23,4 +24,5 @@ router.use("/customers", customerRoutes);
 
 router.use("/webhooks",webhookRoutes);
 
+router.use("/etl", etlRoutes);
 export default router;

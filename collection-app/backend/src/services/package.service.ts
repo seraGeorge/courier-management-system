@@ -179,10 +179,17 @@ export const processRawUpdates = async () => {
       });
 
       if (!existing) {
-        console.error(
-          `[ETL] Package not found for trackingId ${update.trackingId} (eventId ${update.eventId}) — skipping row, not the batch.`,
+        // Collection is the package source of truth (Logistics only receives creates).
+        // A status update for an unknown trackingId will not self-heal — mark it applied
+        // so we stop clogging the queue and can confirm back to Logistics.
+        console.warn(
+          `[ETL] Package not found for trackingId ${update.trackingId} (eventId ${update.eventId}) — marking applied and skipping.`,
         );
-        continue; // left appliedAt: null — retried next tick; revisit if this needs a cutoff
+        await prisma.rawPackageUpdate.update({
+          where: { id: update.id },
+          data: { appliedAt: new Date() },
+        });
+        continue;
       }
 
       await prisma.$transaction([
@@ -224,20 +231,16 @@ export const processRawUpdates = async () => {
         })),
       });
 
-      await axios.post(
-        `${process.env.LOGISTICS_BASE_URL}/api/etl/confirm`,
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.COLLECTION_API_KEY!,
-            "x-signature": generateSignature(
-              payload,
-              process.env.COLLECTION_SECRET_KEY!,
-            ),
-          },
+      await axios.post(`${process.env.API_URL}/etl/confirm`, payload, {
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.LOGISTICS_API_KEY!,
+          "x-signature": generateSignature(
+            payload,
+            process.env.LOGISTICS_SECRET_KEY!,
+          ),
         },
-      );
+      });
 
       await prisma.rawPackageUpdate.updateMany({
         where: { id: { in: rows.map((r) => r.id) } },

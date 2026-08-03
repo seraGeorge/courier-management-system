@@ -26,7 +26,7 @@ services:
     container_name: logistics_backend
     restart: unless-stopped
     ports:
-      - "5001:5000"
+      - "5001:5001"
     env_file:
       - ./backend/.env
     depends_on:

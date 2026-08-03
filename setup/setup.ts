@@ -2,10 +2,10 @@ import axios from "axios";
 import fs from "node:fs";
 import path from "node:path";
 
-const LOGISTICS_URL = "http://localhost:5001/api";
+const LOGISTICS_URL = "http://logistics_backend:5001/api";
 const COLLECTION_WEBHOOK_URL =
-  process.env.COLLECTION_WEBHOOK_URL ?? "http://localhost:5000/api/raw-updates";
-  
+  process.env.COLLECTION_WEBHOOK_URL ??
+  "http://collection_backend:5000/api/raw-updates";  
 const envPath = path.join(process.cwd(), "collection-app", "backend", ".env");
 
 async function waitForBackend() {

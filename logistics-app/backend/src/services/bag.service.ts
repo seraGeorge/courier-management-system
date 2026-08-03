@@ -43,6 +43,7 @@ export const assignPackageToBag = async (data: AssignPackageToBagRequest) => {
       statusHistory: {
         create: {
           status: PackageStatus.ADDED_TO_BAG,
+          customerId: packageData.customerId,
         },
       },
     },
