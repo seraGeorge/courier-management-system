@@ -89,6 +89,7 @@ model RawPackageUpdate {
   batchId     String
   trackingId  String
   status      PackageStatus
+  delayReason String?
   eventId     String        @unique
   receivedAt  DateTime      @default(now())
   appliedAt   DateTime?

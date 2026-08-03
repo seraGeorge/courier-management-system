@@ -198,9 +198,16 @@ export default function BagDispatchTable({
                       </span>
                     )}
                     {isDelayed && (
-                      <span className="text-xs text-red-500 font-medium">
-                        Delayed
-                      </span>
+                      <div className="space-y-1">
+                        <span className="text-xs text-red-500 font-medium">
+                          Delayed
+                        </span>
+                        {bag.delayReason && (
+                          <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-md px-2 py-1 max-w-[200px]">
+                            {bag.delayReason}
+                          </p>
+                        )}
+                      </div>
                     )}
                     {isLoaded && (
                       <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-medium bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">

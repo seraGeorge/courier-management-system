@@ -10,6 +10,7 @@ export interface LoadBagToTruckRequest {
 export interface UpdatePackageStatusRequest {
   trackingId: string;
   status: PackageStatus;
+  delayReason?: string;
 }
 export interface TruckBagResponse {
   bag: BagResponse;

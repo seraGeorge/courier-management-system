@@ -31,9 +31,11 @@ export const loadBagToTruck = async (
 export const updateTruckStatus = async (
   truckNumber: string,
   status: "DEPARTED" | "ARRIVED" | "DELAYED",
+  delayReason?: string,
 ) => {
   const response = await api.patch(`/trucks/${truckNumber}/status`, {
     status,
+    ...(delayReason !== undefined ? { delayReason } : {}),
   });
 
   return response.data;

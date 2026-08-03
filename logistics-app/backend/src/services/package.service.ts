@@ -1,4 +1,8 @@
-import { StatusMap } from "@/lib/package-status";
+import {
+  CollectionToLogisticsAppStatusMap,
+  CollectionPackageStatus,
+  StatusMap,
+} from "@/lib/package-status";
 import { prisma } from "@/lib/prisma";
 import { CreatePackageRequest } from "@shared/types";
 import { PackageStatus } from "@/generated/prisma/client";
@@ -112,7 +116,13 @@ export const getLoadedPackages = async () => {
 export const updatePackageStatusByTrackingId = async (
   trackingId: string,
   status: PackageStatus,
+  delayReason?: string,
+  options?: { markHistoryProcessed?: boolean },
 ) => {
+  if (status === PackageStatus.DELAYED && !delayReason?.trim()) {
+    throw new Error("DELAY_REASON_REQUIRED");
+  }
+
   const existingPackage = await prisma.package.findUnique({
     where: { trackingId },
     select: {
@@ -128,17 +138,43 @@ export const updatePackageStatusByTrackingId = async (
   return prisma.$transaction(async (tx) => {
     const updatedPackage = await tx.package.update({
       where: { trackingId },
-      data: { status },
+      data: {
+        status,
+        delayReason:
+          status === PackageStatus.DELAYED ? delayReason!.trim() : null,
+      },
     });
 
     await tx.packageStatusHistory.create({
       data: {
         packageId: existingPackage.id,
         status,
+        remarks:
+          status === PackageStatus.DELAYED ? delayReason!.trim() : null,
         customerId: existingPackage.customerId,
+        // Status originated in Collection — already applied there; skip ETL echo.
+        processed: options?.markHistoryProcessed ?? false,
       },
     });
 
     return updatedPackage;
   });
+};
+
+export const updatePackageStatusFromCollection = async (
+  trackingId: string,
+  collectionStatus: CollectionPackageStatus,
+  delayReason?: string | null,
+) => {
+  const logisticsStatus = CollectionToLogisticsAppStatusMap[collectionStatus];
+  if (!logisticsStatus) {
+    throw new Error("UNMAPPED_COLLECTION_STATUS");
+  }
+
+  return updatePackageStatusByTrackingId(
+    trackingId,
+    logisticsStatus,
+    delayReason ?? undefined,
+    { markHistoryProcessed: true },
+  );
 };

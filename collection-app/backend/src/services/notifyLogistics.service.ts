@@ -2,29 +2,38 @@ import { generateSignature } from "@/utils/hmac";
 import { getNextRetryTime } from "@/utils/retry";
 import { CreatePackageInput } from "@/validations/package";
 import { prisma } from "@/lib/prisma";
-import { SyncStatus } from "@/generated/prisma/client";
+import { PackageStatus, SyncStatus } from "@/generated/prisma/client";
 import axios from "axios";
 
 const MAX_ATTEMPTS = 10;
 export const PACKAGE_CREATED_EVENT = "PACKAGE_CREATED";
+export const PACKAGE_STATUS_UPDATED_EVENT = "PACKAGE_STATUS_UPDATED";
 
 export type PackageCreatedPayload = CreatePackageInput & { trackingId: string };
 
-const getWebhookUrl = () => {
+export type PackageStatusUpdatedPayload = {
+  trackingId: string;
+  status: PackageStatus;
+  delayReason?: string | null;
+};
+
+const getWebhookBaseUrl = () => {
   const rawApiUrl = process.env.API_URL?.trim();
   if (!rawApiUrl) {
     throw new Error("API_URL is not configured");
   }
 
   const baseUrl = rawApiUrl.replace(/\/+$/, "");
-  return baseUrl.endsWith("/api")
-    ? `${baseUrl}/webhooks/packages`
-    : `${baseUrl}/api/webhooks/packages`;
+  return baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
 };
 
-export const deliverPackageCreatedWebhook = async (
-  payload: PackageCreatedPayload,
-) => {
+const getPackageCreatedWebhookUrl = () =>
+  `${getWebhookBaseUrl()}/webhooks/packages`;
+
+const getPackageStatusWebhookUrl = () =>
+  `${getWebhookBaseUrl()}/webhooks/packages/status`;
+
+const postSignedWebhook = async (url: string, payload: unknown) => {
   const secretKey = process.env.LOGISTICS_SECRET_KEY?.trim();
   if (!secretKey) {
     throw new Error("LOGISTICS_SECRET_KEY is not configured");
@@ -33,12 +42,25 @@ export const deliverPackageCreatedWebhook = async (
   const body = JSON.stringify(payload);
   const signature = generateSignature(body, secretKey);
 
-  await axios.post(getWebhookUrl(), payload, {
+  await axios.post(url, body, {
     headers: {
+      "Content-Type": "application/json",
       "x-api-key": process.env.LOGISTICS_API_KEY?.trim(),
       "x-signature": signature,
     },
   });
+};
+
+export const deliverPackageCreatedWebhook = async (
+  payload: PackageCreatedPayload,
+) => {
+  await postSignedWebhook(getPackageCreatedWebhookUrl(), payload);
+};
+
+export const deliverPackageStatusUpdatedWebhook = async (
+  payload: PackageStatusUpdatedPayload,
+) => {
+  await postSignedWebhook(getPackageStatusWebhookUrl(), payload);
 };
 
 const isRetryableError = (error: unknown) => {
@@ -75,21 +97,37 @@ export const processOutboundWebhooks = async () => {
   }
 
   for (const event of pending) {
-    const payload = event.payload as PackageCreatedPayload;
-
     try {
-      await deliverPackageCreatedWebhook(payload);
+      if (event.eventType === PACKAGE_CREATED_EVENT) {
+        await deliverPackageCreatedWebhook(
+          event.payload as PackageCreatedPayload,
+        );
+      } else if (event.eventType === PACKAGE_STATUS_UPDATED_EVENT) {
+        await deliverPackageStatusUpdatedWebhook(
+          event.payload as PackageStatusUpdatedPayload,
+        );
+      } else {
+        throw new Error(`Unknown outbound event type: ${event.eventType}`);
+      }
 
-      await prisma.$transaction([
+      const updates = [
         prisma.outboundWebhook.update({
           where: { id: event.id },
           data: { deliveredAt: new Date(), lastError: null },
         }),
-        prisma.package.update({
-          where: { trackingId: event.trackingId },
-          data: { syncStatus: SyncStatus.SYNCED, syncedAt: new Date() },
-        }),
-      ]);
+      ];
+
+      // Only package-create events own the package syncStatus lifecycle.
+      if (event.eventType === PACKAGE_CREATED_EVENT) {
+        updates.push(
+          prisma.package.update({
+            where: { trackingId: event.trackingId },
+            data: { syncStatus: SyncStatus.SYNCED, syncedAt: new Date() },
+          }),
+        );
+      }
+
+      await prisma.$transaction(updates);
     } catch (error) {
       const nextAttempts = event.attempts + 1;
       const errorMessage = getErrorMessage(error);
@@ -100,7 +138,7 @@ export const processOutboundWebhooks = async () => {
       );
 
       if (!isRetryableError(error) || nextAttempts >= MAX_ATTEMPTS) {
-        await prisma.$transaction([
+        const updates = [
           prisma.outboundWebhook.update({
             where: { id: event.id },
             data: {
@@ -108,11 +146,18 @@ export const processOutboundWebhooks = async () => {
               lastError: errorMessage,
             },
           }),
-          prisma.package.update({
-            where: { trackingId: event.trackingId },
-            data: { syncStatus: SyncStatus.FAILED },
-          }),
-        ]);
+        ];
+
+        if (event.eventType === PACKAGE_CREATED_EVENT) {
+          updates.push(
+            prisma.package.update({
+              where: { trackingId: event.trackingId },
+              data: { syncStatus: SyncStatus.FAILED },
+            }),
+          );
+        }
+
+        await prisma.$transaction(updates);
         continue;
       }
 

@@ -215,7 +215,14 @@ export const getArrivedTruckDetailsByTruckNumber = async (
 export const updateTruckStatus = async (
   truckNumber: string,
   status: TruckStatus,
+  delayReason?: string,
 ) => {
+  if (status === TruckStatus.DELAYED && !delayReason?.trim()) {
+    throw new Error("DELAY_REASON_REQUIRED");
+  }
+
+  const trimmedDelayReason = delayReason?.trim();
+
   return prisma.$transaction(async (tx) => {
     const truck = await tx.truck.findUnique({
       where: {
@@ -267,6 +274,7 @@ export const updateTruckStatus = async (
           },
           data: {
             status: BagStatus.COMPLETED,
+            delayReason: null,
           },
         });
 
@@ -278,6 +286,7 @@ export const updateTruckStatus = async (
           },
           data: {
             status: PackageStatus.ARRIVED_AT_REGION,
+            delayReason: null,
           },
         });
 
@@ -299,6 +308,7 @@ export const updateTruckStatus = async (
           },
           data: {
             status: BagStatus.DELAYED,
+            delayReason: trimmedDelayReason,
           },
         });
 
@@ -310,6 +320,7 @@ export const updateTruckStatus = async (
           },
           data: {
             status: PackageStatus.DELAYED,
+            delayReason: trimmedDelayReason,
           },
         });
 
@@ -317,6 +328,7 @@ export const updateTruckStatus = async (
           data: packages.map((pkg) => ({
             packageId: pkg.id,
             status: PackageStatus.DELAYED,
+            remarks: trimmedDelayReason,
             customerId: pkg.customerId,
           })),
         });
@@ -331,6 +343,7 @@ export const updateTruckStatus = async (
           },
           data: {
             status: BagStatus.IN_TRANSIT,
+            delayReason: null,
           },
         });
 
@@ -342,6 +355,7 @@ export const updateTruckStatus = async (
           },
           data: {
             status: PackageStatus.EN_ROUTE,
+            delayReason: null,
           },
         });
 

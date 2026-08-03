@@ -145,12 +145,21 @@ export const updateTruckStatusController = async (
     const truck = await updateTruckStatus(
       truckNumber as string,
       result.data.status,
+      result.data.delayReason,
     );
 
     return res
       .status(200)
       .json(buildResponse(200, "Truck status updated successfully", truck));
   } catch (error) {
+    if (error instanceof Error && error.message === "DELAY_REASON_REQUIRED") {
+      return res.status(400).json(
+        buildResponse(400, "Delay reason is required when status is DELAYED", null, {
+          code: "DELAY_REASON_REQUIRED",
+        }),
+      );
+    }
+
     return res.status(500).json(
       buildResponse(500, "Failed to update truck", null, {
         code: "INTERNAL_SERVER_ERROR",

@@ -13,7 +13,8 @@ export const getPendingUpdates = async (customerId: string) => {
     where: { processed: false, customerId },
     select: {
       id: true,
-      package: { select: { trackingId: true } },
+      remarks: true,
+      package: { select: { trackingId: true, delayReason: true } },
       status: true,
     },
     orderBy: { createdAt: "asc" },
@@ -21,17 +22,27 @@ export const getPendingUpdates = async (customerId: string) => {
 
   const latestByTracking = new Map<
     string,
-    { eventId: string; trackingId: string; status: CollectionPackageStatus }
+    {
+      eventId: string;
+      trackingId: string;
+      status: CollectionPackageStatus;
+      delayReason?: string | null;
+    }
   >();
   const supersededEventIds: string[] = [];
 
   for (const history of histories) {
     const existing = latestByTracking.get(history.package.trackingId);
     if (existing) supersededEventIds.push(existing.eventId); // older event for same package, now stale
+    const mappedStatus = LogisticsToCollectionAppStatusMap[history.status];
     latestByTracking.set(history.package.trackingId, {
       eventId: history.id,
       trackingId: history.package.trackingId,
-      status: LogisticsToCollectionAppStatusMap[history.status],
+      status: mappedStatus,
+      delayReason:
+        mappedStatus === "DELAYED"
+          ? history.remarks ?? history.package.delayReason
+          : null,
     });
   }
 
@@ -45,6 +56,7 @@ export interface PendingPackageUpdate {
   eventId: string;
   trackingId: string;
   status: CollectionPackageStatus; // not PackageStatus
+  delayReason?: string | null;
 }
 
 export const sendPackageUpdatesToCollection = async (

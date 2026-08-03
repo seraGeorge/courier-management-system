@@ -135,12 +135,19 @@ export const delayBagByNumber = async (data: {
   delayReason: string;
 }) => {
   const { bagNumber, delayReason } = data;
+  const trimmedDelayReason = delayReason.trim();
+
   const bag = await prisma.bag.findUnique({
     where: {
       bagNumber,
     },
     include: {
-      packages: true,
+      packages: {
+        select: {
+          id: true,
+          customerId: true,
+        },
+      },
     },
   });
 
@@ -151,14 +158,37 @@ export const delayBagByNumber = async (data: {
     throw new Error("EMPTY_BAG");
   }
 
-  return prisma.bag.update({
-    where: {
-      id: bag.id,
-    },
-    data: {
-      status: BagStatus.DELAYED,
-      delayReason: delayReason,
-    },
+  return prisma.$transaction(async (tx) => {
+    const updatedBag = await tx.bag.update({
+      where: {
+        id: bag.id,
+      },
+      data: {
+        status: BagStatus.DELAYED,
+        delayReason: trimmedDelayReason,
+      },
+    });
+
+    await tx.package.updateMany({
+      where: {
+        bagId: bag.id,
+      },
+      data: {
+        status: PackageStatus.DELAYED,
+        delayReason: trimmedDelayReason,
+      },
+    });
+
+    await tx.packageStatusHistory.createMany({
+      data: bag.packages.map((pkg) => ({
+        packageId: pkg.id,
+        status: PackageStatus.DELAYED,
+        remarks: trimmedDelayReason,
+        customerId: pkg.customerId,
+      })),
+    });
+
+    return updatedBag;
   });
 };
 

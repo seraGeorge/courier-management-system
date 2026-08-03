@@ -117,8 +117,9 @@ const DashboardPageContent = () => {
   const handleTruckStatus = async (
     truckNumber: string,
     status: "DEPARTED" | "ARRIVED" | "DELAYED",
+    delayReason?: string,
   ) => {
-    await updateTruckStatus(truckNumber, status);
+    await updateTruckStatus(truckNumber, status, delayReason);
     await fetchData();
   };
 

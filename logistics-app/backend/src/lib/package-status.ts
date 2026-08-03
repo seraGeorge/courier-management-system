@@ -40,3 +40,16 @@ export const LogisticsToCollectionAppStatusMap: Record<
   DELAYED: "DELAYED",
   DELIVERED: "DELIVERED",
 } as const;
+
+/** Statuses Collection can push back (last-mile / customer-facing actions). */
+export const CollectionToLogisticsAppStatusMap: Partial<
+  Record<CollectionPackageStatus, PackageStatus>
+> = {
+  TO_BE_PICKED_UP: PackageStatus.TO_BE_PICKED_UP,
+  PICKED_UP: PackageStatus.PICKED_UP,
+  SCHEDULED_FOR_DELIVERY: PackageStatus.SCHEDULED_FOR_DELIVERY,
+  OUT_FOR_DELIVERY: PackageStatus.OUT_FOR_DELIVERY,
+  DELAYED: PackageStatus.DELAYED,
+  DELIVERED: PackageStatus.DELIVERED,
+  // PROCESSING / IN_TRANSIT are logistics aggregates — Collection must not set them.
+} as const;

@@ -1,16 +1,18 @@
-import { verifyWebhook } from "@/middlewares/verifyWebhook";
 import {
   createPackage,
   getLoadedPackages,
   getPackages,
   updatePackageStatusByTrackingId,
+  updatePackageStatusFromCollection,
 } from "@/services/package.service";
 import { buildResponse } from "@/utils/response";
 import {
+  CollectionPackageStatusUpdateSchema,
   CreatePackageSchema,
   UpdatePackageStatusSchema,
 } from "@/validations/package";
 import type { Request, Response } from "express";
+import { CollectionPackageStatus } from "@/lib/package-status";
 
 export const listPackages = async (req: Request, res: Response) => {
   try {
@@ -71,6 +73,75 @@ export const receivePackageWebhook = async (req: Request, res: Response) => {
   }
 };
 
+export const receivePackageStatusWebhook = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const result = CollectionPackageStatusUpdateSchema.safeParse(req.body);
+
+    if (!result.success) {
+      return res.status(400).json(
+        buildResponse(400, "Invalid request data", null, {
+          code: "VALIDATION_ERROR",
+          fieldErrors: result.error.flatten().fieldErrors,
+        }),
+      );
+    }
+
+    const updatedPackage = await updatePackageStatusFromCollection(
+      result.data.trackingId,
+      result.data.status as CollectionPackageStatus,
+      result.data.delayReason,
+    );
+
+    return res
+      .status(200)
+      .json(
+        buildResponse(
+          200,
+          "Package status updated successfully",
+          updatedPackage,
+        ),
+      );
+  } catch (error) {
+    console.error("STATUS WEBHOOK ERROR:", error);
+
+    if (error instanceof Error && error.message === "PACKAGE_NOT_FOUND") {
+      return res.status(404).json(
+        buildResponse(404, "Package not found", null, {
+          code: "PACKAGE_NOT_FOUND",
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "UNMAPPED_COLLECTION_STATUS") {
+      return res.status(400).json(
+        buildResponse(400, "Status cannot be mapped to logistics", null, {
+          code: "UNMAPPED_COLLECTION_STATUS",
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "DELAY_REASON_REQUIRED") {
+      return res.status(400).json(
+        buildResponse(
+          400,
+          "Delay reason is required when status is DELAYED",
+          null,
+          { code: "DELAY_REASON_REQUIRED" },
+        ),
+      );
+    }
+
+    return res.status(500).json(
+      buildResponse(500, "Internal Server Error", null, {
+        code: "INTERNAL_SERVER_ERROR",
+      }),
+    );
+  }
+};
+
 export const listLoadedPackages = async (req: Request, res: Response) => {
   try {
     const packages = await getLoadedPackages();
@@ -109,6 +180,7 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
     const updatedPackage = await updatePackageStatusByTrackingId(
       id as string,
       result.data.status,
+      result.data.delayReason,
     );
 
     return res
@@ -125,6 +197,14 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
       return res.status(404).json(
         buildResponse(404, "Package not found", null, {
           code: "PACKAGE_NOT_FOUND",
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "DELAY_REASON_REQUIRED") {
+      return res.status(400).json(
+        buildResponse(400, "Delay reason is required when status is DELAYED", null, {
+          code: "DELAY_REASON_REQUIRED",
         }),
       );
     }

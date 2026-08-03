@@ -189,7 +189,14 @@ export default function PackageTable({
                   </td>
                 )}
                 <td className="px-4 py-3.5">
-                  <StatusPill status={pkg.status} />
+                  <div className="space-y-1.5">
+                    <StatusPill status={pkg.status} />
+                    {pkg.status === "DELAYED" && pkg.delayReason && (
+                      <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-md px-2 py-1 max-w-xs">
+                        {pkg.delayReason}
+                      </p>
+                    )}
+                  </div>
                 </td>
                 {!noActions && (
                   <td className="px-4 py-3.5">

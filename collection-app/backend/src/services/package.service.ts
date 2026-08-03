@@ -1,7 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { PackageStatus, Prisma, SyncStatus } from "@/generated/prisma/client";
-import { StatusMap } from "@/lib/constants/package-status";
-import { PACKAGE_CREATED_EVENT } from "@/services/notifyLogistics.service";
+import {
+  COLLECTION_OWNED_STATUSES,
+  StatusMap,
+} from "@/lib/constants/package-status";
+import {
+  PACKAGE_CREATED_EVENT,
+  PACKAGE_STATUS_UPDATED_EVENT,
+} from "@/services/notifyLogistics.service";
 import { generateSignature } from "@/utils/hmac";
 import axios from "axios";
 
@@ -126,23 +132,52 @@ export const updatePackageStatus = async (
     throw new Error("PACKAGE_NOT_FOUND");
   }
 
-  return prisma.package
-    .update({
-      where: {
-        id: packageData.id,
-      },
-      data: {
-        status: packageStatus,
-        delayReason:
-          packageStatus === PackageStatus.DELAYED ? delayReason : null,
-      },
+  const shouldNotifyLogistics = COLLECTION_OWNED_STATUSES.has(packageStatus);
+
+  return prisma
+    .$transaction(async (tx) => {
+      const updatedPackage = await tx.package.update({
+        where: {
+          id: packageData.id,
+        },
+        data: {
+          status: packageStatus,
+          delayReason:
+            packageStatus === PackageStatus.DELAYED ? delayReason : null,
+        },
+      });
+
+      // Last-mile / collection-owned statuses must sync back to Logistics.
+      if (shouldNotifyLogistics) {
+        await tx.outboundWebhook.create({
+          data: {
+            eventType: PACKAGE_STATUS_UPDATED_EVENT,
+            trackingId: packageData.trackingId,
+            payload: {
+              trackingId: packageData.trackingId,
+              status: packageStatus,
+              delayReason:
+                packageStatus === PackageStatus.DELAYED
+                  ? delayReason ?? null
+                  : null,
+            },
+          },
+        });
+      }
+
+      return updatedPackage;
     })
     .catch(handlePrismaError);
 };
 
 export const createRawPackageUpdates = async (data: {
   batchId: string;
-  updates: { eventId: string; trackingId: string; status: PackageStatus }[];
+  updates: {
+    eventId: string;
+    trackingId: string;
+    status: PackageStatus;
+    delayReason?: string | null;
+  }[];
 }) => {
   const { batchId, updates } = data;
 
@@ -154,6 +189,7 @@ export const createRawPackageUpdates = async (data: {
       eventId: u.eventId,
       trackingId: u.trackingId,
       status: u.status,
+      delayReason: u.status === PackageStatus.DELAYED ? u.delayReason ?? null : null,
     })),
     skipDuplicates: true,
   });
@@ -195,7 +231,13 @@ export const processRawUpdates = async () => {
       await prisma.$transaction([
         prisma.package.update({
           where: { trackingId: update.trackingId }, // unique — no need for updateMany
-          data: { status: update.status },
+          data: {
+            status: update.status,
+            delayReason:
+              update.status === PackageStatus.DELAYED
+                ? update.delayReason
+                : null,
+          },
         }),
         prisma.rawPackageUpdate.update({
           where: { id: update.id },

@@ -28,9 +28,11 @@ export const assignPackageToBag = async (
 export const updatePackageStatus = async (
   trackingId: string,
   status: PackageStatus,
+  delayReason?: string,
 ) => {
   const response = await api.patch(`/packages/${trackingId}/status`, {
     status,
+    ...(delayReason !== undefined ? { delayReason } : {}),
   });
 
   return response.data;

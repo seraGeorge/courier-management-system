@@ -10,3 +10,11 @@ export const StatusMap = {
   6: PackageStatus.OUT_FOR_DELIVERY,
   7: PackageStatus.DELIVERED,
 } as const;
+
+/** Statuses Collection owns and must push back to Logistics. */
+export const COLLECTION_OWNED_STATUSES: ReadonlySet<PackageStatus> = new Set([
+  PackageStatus.SCHEDULED_FOR_DELIVERY,
+  PackageStatus.OUT_FOR_DELIVERY,
+  PackageStatus.DELAYED,
+  PackageStatus.DELIVERED,
+]);

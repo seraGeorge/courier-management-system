@@ -4,6 +4,7 @@ import { PackageResponse } from "./package";
 export interface BagResponse {
   bagNumber: string;
   status: BagStatus;
+  delayReason?: string | null;
   createdAt: Date;
   _count?: {
     packages: number;

@@ -80,6 +80,7 @@ interface TrucksTableProps {
   onUpdateTruckStatus?: (
     truckNumber: string,
     status: "DEPARTED" | "ARRIVED" | "DELAYED",
+    delayReason?: string,
   ) => Promise<void>;
   noActions?: boolean;
 }
@@ -90,17 +91,32 @@ export default function TrucksTable({
   noActions,
 }: TrucksTableProps) {
   const [loading, setLoading] = useState<boolean>(false);
+  const [delayingTruck, setDelayingTruck] = useState<string | null>(null);
+  const [delayReason, setDelayReason] = useState("");
 
   async function handleTruckStatus(
     truckNumber: string,
     status: "DEPARTED" | "ARRIVED" | "DELAYED",
+    reason?: string,
   ) {
     setLoading(true);
     try {
-      await onUpdateTruckStatus?.(truckNumber, status);
+      await onUpdateTruckStatus?.(truckNumber, status, reason);
+      setDelayingTruck(null);
+      setDelayReason("");
     } finally {
       setLoading(false);
     }
+  }
+
+  function startDelay(truckNumber: string) {
+    setDelayingTruck(truckNumber);
+    setDelayReason("");
+  }
+
+  function cancelDelay() {
+    setDelayingTruck(null);
+    setDelayReason("");
   }
 
   if (trucks.length === 0) {
@@ -131,6 +147,7 @@ export default function TrucksTable({
             (sum, { bag }) => sum + (bag.packages?.length ?? 0),
             0,
           ) ?? 0;
+        const isEnteringDelay = delayingTruck === truck.truckNumber;
 
         return (
           <div
@@ -186,7 +203,7 @@ export default function TrucksTable({
                     </button>
                   )}
 
-                  {truck.status === "DEPARTED" && (
+                  {truck.status === "DEPARTED" && !isEnteringDelay && (
                     <div className="flex gap-2">
                       <button
                         onClick={() =>
@@ -198,9 +215,7 @@ export default function TrucksTable({
                         ✓ Mark Arrived
                       </button>
                       <button
-                        onClick={() =>
-                          handleTruckStatus(truck.truckNumber, "DELAYED")
-                        }
+                        onClick={() => startDelay(truck.truckNumber)}
                         disabled={loading}
                         className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors shadow-sm disabled:opacity-60"
                       >
@@ -241,6 +256,50 @@ export default function TrucksTable({
                 </div>
               )}
             </div>
+
+            {isEnteringDelay && (
+              <div className="px-5 py-4 border-b border-red-100 bg-red-50/60">
+                <label
+                  htmlFor={`delay-reason-${truck.truckNumber}`}
+                  className="block text-xs font-semibold text-red-700 mb-2"
+                >
+                  Delay reason
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    id={`delay-reason-${truck.truckNumber}`}
+                    type="text"
+                    value={delayReason}
+                    onChange={(e) => setDelayReason(e.target.value)}
+                    placeholder="e.g. Traffic congestion on NH-66"
+                    className="flex-1 text-sm border border-red-200 rounded-lg px-3 py-2 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        handleTruckStatus(
+                          truck.truckNumber,
+                          "DELAYED",
+                          delayReason.trim(),
+                        )
+                      }
+                      disabled={loading || !delayReason.trim()}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors shadow-sm disabled:opacity-60"
+                    >
+                      Confirm Delay
+                    </button>
+                    <button
+                      onClick={cancelDelay}
+                      disabled={loading}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-60"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Bags table */}
             {(truck.truckBags?.length ?? 0) === 0 ? (
