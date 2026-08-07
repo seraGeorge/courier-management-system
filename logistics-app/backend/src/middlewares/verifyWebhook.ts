@@ -29,11 +29,8 @@ export const verifyWebhook = async (
       );
     }
 
-    //   Generate expected signature
-    const expectedSignature = generateSignature(
-      JSON.stringify(req.body),
-      customer.secretKey,
-    );
+    const rawBody = req.rawBody?.toString("utf8") ?? JSON.stringify(req.body);
+    const expectedSignature = generateSignature(rawBody, customer.secretKey);
 
     if (expectedSignature.length !== receivedSignature.length) {
       return res.status(403).json(

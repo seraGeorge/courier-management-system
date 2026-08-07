@@ -137,14 +137,17 @@ export const processOutboundWebhooks = async () => {
       );
 
       if (!isRetryableError(error) || nextAttempts >= MAX_ATTEMPTS) {
+        const deadLetterData = {
+          attempts: nextAttempts,
+          lastError: errorMessage,
+          deliveredAt: new Date(),
+        };
+
         if (event.eventType === PACKAGE_CREATED_EVENT) {
           await prisma.$transaction([
             prisma.outboundWebhook.update({
               where: { id: event.id },
-              data: {
-                attempts: nextAttempts,
-                lastError: errorMessage,
-              },
+              data: deadLetterData,
             }),
             prisma.package.update({
               where: { trackingId: event.trackingId },
@@ -154,10 +157,7 @@ export const processOutboundWebhooks = async () => {
         } else {
           await prisma.outboundWebhook.update({
             where: { id: event.id },
-            data: {
-              attempts: nextAttempts,
-              lastError: errorMessage,
-            },
+            data: deadLetterData,
           });
         }
         continue;

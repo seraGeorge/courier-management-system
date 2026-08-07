@@ -104,12 +104,13 @@ export const runEtlPushForCustomer = async (customer: Customer) => {
   const { updates, supersededEventIds } = await getPendingUpdates(customer.id);
   console.log("[ETL] Pending updates:", updates.length);
   console.log(updates);
-  if (supersededEventIds.length) {
-    await markUpdatesProcessed(supersededEventIds);
-  }
 
   if (!updates.length) return;
 
   const batchId = randomUUID();
   await sendPackageUpdatesToCollection(customer, batchId, updates);
+
+  if (supersededEventIds.length) {
+    await markUpdatesProcessed(supersededEventIds);
+  }
 };

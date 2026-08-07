@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request } from "express";
 import cors from "cors";
 import router from "./routes";
 import "@/jobs/push-status-updates";
@@ -6,7 +6,13 @@ import "@/jobs/push-status-updates";
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      (req as Request).rawBody = buf;
+    },
+  }),
+);
 
 
 

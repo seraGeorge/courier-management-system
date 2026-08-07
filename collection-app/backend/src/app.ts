@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request } from "express";
 import cors from "cors";
 import router from "./routes";
 import { startRawUpdateProcessorJob } from "@/jobs/rawUpdateProcessorJob";
@@ -6,7 +6,13 @@ import { startOutboundWebhookProcessorJob } from "@/jobs/outboundWebhookProcesso
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      (req as Request).rawBody = buf;
+    },
+  }),
+);
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is healthy" });

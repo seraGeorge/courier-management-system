@@ -176,6 +176,8 @@ model PackageStatusHistory {
 
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([processed, customerId])
 }
 
 model EtlCheckpoint {

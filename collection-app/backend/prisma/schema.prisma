@@ -96,4 +96,6 @@ model RawPackageUpdate {
   confirmedAt DateTime?
 
   @@index([batchId])
+  @@index([appliedAt])
+  @@index([appliedAt, confirmedAt])
 }
