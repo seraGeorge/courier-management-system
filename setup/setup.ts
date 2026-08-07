@@ -1,35 +1,53 @@
 import axios from "axios";
+import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
 
-const LOGISTICS_URL = "http://logistics_backend:5001/api";
-const COLLECTION_WEBHOOK_URL =
-  process.env.COLLECTION_WEBHOOK_URL ??
-  "http://collection_backend:5000/api/raw-updates";  
+const setupDir = path.join(process.cwd(), "setup");
+dotenv.config({ path: path.join(setupDir, ".env") });
+
+const LOGISTICS_URL = process.env.LOGISTICS_URL?.trim();
+const COLLECTION_WEBHOOK_URL = process.env.COLLECTION_WEBHOOK_URL?.trim();
 const envPath = path.join(process.cwd(), "collection-app", "backend", ".env");
 
-async function waitForBackend() {
-  console.log("Waiting for Logistics Backend...");
+function requireEnv(name: string, value: string | undefined): string {
+  if (!value) {
+    throw new Error(
+      `${name} is not set. Copy setup/.env.example to setup/.env and configure it.`,
+    );
+  }
+  return value;
+}
 
-  while (true) {
+async function waitForBackend(logisticsUrl: string) {
+  console.log(`Waiting for Logistics Backend at ${logisticsUrl}...`);
+
+  const maxAttempts = 30;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      await axios.get(`${LOGISTICS_URL}/health`);
-      break;
-    } catch {
+      await axios.get(`${logisticsUrl}/health`, { timeout: 3000 });
+      console.log("Logistics Backend is ready.");
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`Attempt ${attempt}/${maxAttempts} failed: ${message}`);
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
   }
 
-  console.log("Logistics Backend is ready.");
+  throw new Error(
+    "Timed out waiting for Logistics Backend. Start it with: cd logistics-app && docker compose up -d",
+  );
 }
 
-async function registerCustomer() {
+async function registerCustomer(logisticsUrl: string, webhookUrl: string) {
   console.log("Registering Collection Application...");
 
-  const { data } = await axios.post(`${LOGISTICS_URL}/customers`, {
+  const { data } = await axios.post(`${logisticsUrl}/customers`, {
     name: "Collection App",
     email: "collection@example.com",
-    webhookUrl: COLLECTION_WEBHOOK_URL,
+    webhookUrl,
   });
 
   return data.data;
@@ -55,9 +73,21 @@ function updateEnv(apiKey: string, secretKey: string) {
 
 async function main() {
   try {
-    await waitForBackend();
+    const logisticsUrl = requireEnv("LOGISTICS_URL", LOGISTICS_URL);
+    const webhookUrl = requireEnv(
+      "COLLECTION_WEBHOOK_URL",
+      COLLECTION_WEBHOOK_URL,
+    );
 
-    const customer = await registerCustomer();
+    if (!fs.existsSync(envPath)) {
+      throw new Error(
+        `Missing ${envPath}. Create it before running setup (see README).`,
+      );
+    }
+
+    await waitForBackend(logisticsUrl);
+
+    const customer = await registerCustomer(logisticsUrl, webhookUrl);
 
     updateEnv(customer.apiKey, customer.secretKey);
 
@@ -75,6 +105,7 @@ async function main() {
     );
   } catch (error) {
     console.error(error);
+    process.exit(1);
   }
 }
 
