@@ -9,10 +9,11 @@ import axios from "axios";
 import { randomUUID } from "crypto";
 
 export const getPendingUpdates = async (customerId: string) => {
-  const histories = await prisma.packageStatusHistory.findMany({
+  const unprocessed = await prisma.packageStatusHistory.findMany({
     where: { processed: false, customerId },
     select: {
       id: true,
+      packageId: true,
       remarks: true,
       package: { select: { trackingId: true, delayReason: true } },
       status: true,
@@ -20,22 +21,45 @@ export const getPendingUpdates = async (customerId: string) => {
     orderBy: { createdAt: "asc" },
   });
 
-  const latestByTracking = new Map<
-    string,
-    {
-      eventId: string;
-      trackingId: string;
-      status: CollectionPackageStatus;
-      delayReason?: string | null;
-    }
-  >();
+  if (!unprocessed.length) {
+    return { updates: [], supersededEventIds: [] };
+  }
+
+  const packageIds = [...new Set(unprocessed.map((history) => history.packageId))];
+
+  const latestByPackage = await prisma.packageStatusHistory.findMany({
+    where: { packageId: { in: packageIds } },
+    orderBy: { createdAt: "desc" },
+    distinct: ["packageId"],
+    select: {
+      id: true,
+      processed: true,
+      packageId: true,
+      remarks: true,
+      status: true,
+      package: { select: { trackingId: true, delayReason: true } },
+    },
+  });
+
+  const latestHistoryByPackageId = new Map(
+    latestByPackage.map((history) => [history.packageId, history]),
+  );
+
+  const updates: PendingPackageUpdate[] = [];
   const supersededEventIds: string[] = [];
 
-  for (const history of histories) {
-    const existing = latestByTracking.get(history.package.trackingId);
-    if (existing) supersededEventIds.push(existing.eventId); // older event for same package, now stale
+  for (const history of unprocessed) {
+    const latest = latestHistoryByPackageId.get(history.packageId);
+
+    // Skip stale rows left behind after partial/failed pushes — only the
+    // package's true latest history may be sent to Collection.
+    if (!latest || latest.id !== history.id || latest.processed) {
+      supersededEventIds.push(history.id);
+      continue;
+    }
+
     const mappedStatus = LogisticsToCollectionAppStatusMap[history.status];
-    latestByTracking.set(history.package.trackingId, {
+    updates.push({
       eventId: history.id,
       trackingId: history.package.trackingId,
       status: mappedStatus,
@@ -46,10 +70,7 @@ export const getPendingUpdates = async (customerId: string) => {
     });
   }
 
-  return {
-    updates: [...latestByTracking.values()],
-    supersededEventIds, // caller should mark these processed too, alongside the sent ones
-  };
+  return { updates, supersededEventIds };
 };
 
 export interface PendingPackageUpdate {
