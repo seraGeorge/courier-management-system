@@ -176,6 +176,7 @@ export const createRawPackageUpdates = async (data: {
     eventId: string;
     trackingId: string;
     status: PackageStatus;
+    occurredAt?: string;
     delayReason?: string | null;
   }[];
 }) => {
@@ -190,6 +191,7 @@ export const createRawPackageUpdates = async (data: {
       trackingId: u.trackingId,
       status: u.status,
       delayReason: u.status === PackageStatus.DELAYED ? u.delayReason ?? null : null,
+      receivedAt: u.occurredAt ? new Date(u.occurredAt) : undefined,
     })),
     skipDuplicates: true,
   });
@@ -200,7 +202,7 @@ export const processRawUpdates = async () => {
   // 1. Apply anything not yet applied
   const unapplied = await prisma.rawPackageUpdate.findMany({
     where: { appliedAt: null },
-    orderBy: { receivedAt: "asc" },
+    orderBy: [{ receivedAt: "asc" }, { id: "asc" }],
     take: 200,
   });
 

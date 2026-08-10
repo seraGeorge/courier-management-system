@@ -13,70 +13,36 @@ export const getPendingUpdates = async (customerId: string) => {
     where: { processed: false, customerId },
     select: {
       id: true,
-      packageId: true,
       remarks: true,
+      createdAt: true,
       package: { select: { trackingId: true, delayReason: true } },
       status: true,
     },
     orderBy: { createdAt: "asc" },
   });
 
-  if (!unprocessed.length) {
-    return { updates: [], supersededEventIds: [] };
-  }
-
-  const packageIds = [...new Set(unprocessed.map((history) => history.packageId))];
-
-  const latestByPackage = await prisma.packageStatusHistory.findMany({
-    where: { packageId: { in: packageIds } },
-    orderBy: { createdAt: "desc" },
-    distinct: ["packageId"],
-    select: {
-      id: true,
-      processed: true,
-      packageId: true,
-      remarks: true,
-      status: true,
-      package: { select: { trackingId: true, delayReason: true } },
-    },
-  });
-
-  const latestHistoryByPackageId = new Map(
-    latestByPackage.map((history) => [history.packageId, history]),
-  );
-
-  const updates: PendingPackageUpdate[] = [];
-  const supersededEventIds: string[] = [];
-
-  for (const history of unprocessed) {
-    const latest = latestHistoryByPackageId.get(history.packageId);
-
-    // Skip stale rows left behind after partial/failed pushes — only the
-    // package's true latest history may be sent to Collection.
-    if (!latest || latest.id !== history.id || latest.processed) {
-      supersededEventIds.push(history.id);
-      continue;
-    }
-
-    const mappedStatus = LogisticsToCollectionAppStatusMap[history.status];
-    updates.push({
-      eventId: history.id,
-      trackingId: history.package.trackingId,
-      status: mappedStatus,
-      delayReason:
-        mappedStatus === "DELAYED"
-          ? history.remarks ?? history.package.delayReason
-          : null,
-    });
-  }
-
-  return { updates, supersededEventIds };
+  return {
+    updates: unprocessed.map((history) => {
+      const mappedStatus = LogisticsToCollectionAppStatusMap[history.status];
+      return {
+        eventId: history.id,
+        trackingId: history.package.trackingId,
+        status: mappedStatus,
+        occurredAt: history.createdAt.toISOString(),
+        delayReason:
+          mappedStatus === "DELAYED"
+            ? history.remarks ?? history.package.delayReason
+            : null,
+      };
+    }),
+  };
 };
 
 export interface PendingPackageUpdate {
   eventId: string;
   trackingId: string;
   status: CollectionPackageStatus; // not PackageStatus
+  occurredAt: string;
   delayReason?: string | null;
 }
 
@@ -122,7 +88,7 @@ export const markUpdatesProcessed = async (eventIds: string[]) => {
 
 // orchestration — this is the piece that's currently missing
 export const runEtlPushForCustomer = async (customer: Customer) => {
-  const { updates, supersededEventIds } = await getPendingUpdates(customer.id);
+  const { updates } = await getPendingUpdates(customer.id);
   console.log("[ETL] Pending updates:", updates.length);
   console.log(updates);
 
@@ -130,8 +96,4 @@ export const runEtlPushForCustomer = async (customer: Customer) => {
 
   const batchId = randomUUID();
   await sendPackageUpdatesToCollection(customer, batchId, updates);
-
-  if (supersededEventIds.length) {
-    await markUpdatesProcessed(supersededEventIds);
-  }
 };

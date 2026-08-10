@@ -25,6 +25,15 @@ const STATUS_COLORS: Record<PackageStatus, string> = {
   DELIVERED: "bg-emerald-100 text-emerald-700 border-emerald-200",
 };
 
+type TrackStep = (typeof PACKAGE_TRACK_STEPS)[number];
+
+type DelayPeriod = {
+  startedAt: string;
+  endedAt: string | null;
+  reason: string | null;
+  duringStep: TrackStep;
+};
+
 function formatTrackDate(value: string) {
   return new Date(value).toLocaleString("en-IN", {
     day: "numeric",
@@ -33,6 +42,80 @@ function formatTrackDate(value: string) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function formatDelayDuration(start: string, end: string | null) {
+  const diffMs = (end ? new Date(end) : new Date()).getTime() - new Date(start).getTime();
+  if (diffMs <= 0) return "Less than a minute";
+
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) {
+    const parts = [`${days}d`];
+    if (hours > 0) parts.push(`${hours}h`);
+    return parts.join(" ");
+  }
+  if (hours > 0) {
+    const parts = [`${hours}h`];
+    if (minutes > 0) parts.push(`${minutes}m`);
+    return parts.join(" ");
+  }
+  if (minutes > 0) return `${minutes}m`;
+  return "Less than a minute";
+}
+
+function statusBeforeDelay(
+  history: TrackResult["history"],
+  delayIndex: number,
+): TrackStep {
+  for (let i = delayIndex - 1; i >= 0; i--) {
+    if (history[i].status !== "DELAYED") {
+      return history[i].status as TrackStep;
+    }
+  }
+  return "TO_BE_PICKED_UP";
+}
+
+function extractDelayPeriods(result: TrackResult): DelayPeriod[] {
+  return result.history.flatMap((event, index) => {
+    if (event.status !== "DELAYED") return [];
+
+    const nextNonDelay = result.history
+      .slice(index + 1)
+      .find((entry) => entry.status !== "DELAYED");
+
+    return [
+      {
+        startedAt: event.at,
+        endedAt: nextNonDelay?.at ?? null,
+        reason: event.delayReason,
+        duringStep: statusBeforeDelay(result.history, index),
+      },
+    ];
+  });
+}
+
+function groupDelaysByStep(
+  delays: DelayPeriod[],
+): Partial<Record<TrackStep, DelayPeriod[]>> {
+  return delays.reduce<Partial<Record<TrackStep, DelayPeriod[]>>>((grouped, delay) => {
+    const existing = grouped[delay.duringStep] ?? [];
+    grouped[delay.duringStep] = [...existing, delay];
+    return grouped;
+  }, {});
+}
+
+function formatDelayTiming(delay: DelayPeriod) {
+  const duration = formatDelayDuration(delay.startedAt, delay.endedAt);
+
+  if (delay.endedAt) {
+    return `Delayed from ${formatTrackDate(delay.startedAt)} to ${formatTrackDate(delay.endedAt)} (${duration})`;
+  }
+
+  return `Delayed since ${formatTrackDate(delay.startedAt)} — still ongoing (${duration} so far)`;
 }
 
 function resolveProgressStatus(result: TrackResult): PackageStatus {
@@ -138,6 +221,9 @@ export default function TrackPackageForm() {
     : -1;
   const isDelayed = result?.status === "DELAYED";
   const isDelivered = result?.status === "DELIVERED";
+  const delaysByStep = result
+    ? groupDelaysByStep(extractDelayPeriods(result))
+    : {};
 
   return (
     <div className="space-y-6">
@@ -223,6 +309,7 @@ export default function TrackPackageForm() {
                 const upcoming = i > currentStep && !isDelivered;
                 const timestamp = timestampForStep(step, result);
                 const substeps = PACKAGE_STATUS_SUBSTEPS[step] ?? [];
+                const stepDelays = delaysByStep[step] ?? [];
                 const showDetails = completed || current;
 
                 return (
@@ -314,6 +401,29 @@ export default function TrackPackageForm() {
                                     {completed ? "✓" : "•"}
                                   </span>
                                   {detail}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          {stepDelays.length > 0 && (
+                            <ul className="mt-2 space-y-2">
+                              {stepDelays.map((delay, delayIndex) => (
+                                <li
+                                  key={`${delay.startedAt}-${delayIndex}`}
+                                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2"
+                                >
+                                  <p className="text-xs font-semibold text-red-700">
+                                    Delay recorded
+                                  </p>
+                                  <p className="mt-0.5 text-xs leading-relaxed text-red-600">
+                                    {formatDelayTiming(delay)}
+                                  </p>
+                                  {delay.reason && (
+                                    <p className="mt-1 text-xs leading-relaxed text-red-600">
+                                      {delay.reason}
+                                    </p>
+                                  )}
                                 </li>
                               ))}
                             </ul>

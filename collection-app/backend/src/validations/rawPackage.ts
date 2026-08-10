@@ -9,6 +9,7 @@ export const RawPackageUpdatesSchema = z.object({
         eventId: z.string().min(1),
         trackingId: z.string().min(1),
         status: z.nativeEnum(PackageStatus),
+        occurredAt: z.string().datetime().optional(),
         delayReason: z.string().nullable().optional(),
       }),
     )
