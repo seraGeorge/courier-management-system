@@ -40,8 +40,8 @@ export const listTrucks = async (req: Request, res: Response) => {
 
     const trucks = await getTrucks(status);
     return res
-      .status(201)
-      .json(buildResponse(201, "Trucks retrieved successfully", trucks));
+      .status(200)
+      .json(buildResponse(200, "Trucks retrieved successfully", trucks));
   } catch (error) {
     return res.status(500).json(
       buildResponse(500, "Failed to retrieve trucks", null, {
