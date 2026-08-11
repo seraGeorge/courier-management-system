@@ -311,8 +311,8 @@ Destination-to-bag direction validation is not enforced at assignment time.
 **No automatic truck departure scheduler.**  
 Truck status transitions are manual actions.
 
-**Staff/operator UI authentication is not implemented.**  
-Human-facing routes are currently unprotected by robust auth/session controls.
+**Staff/operator UI authentication (Phase 0).**  
+Human-facing routes require `x-api-key` + HMAC signature via shared staff credentials. JWT + roles are planned for Phase 2.
 
 **No message queue backbone.**  
 Current ETL delivery is HTTP + retries; not Kafka/SQS/RabbitMQ-based.

@@ -43,31 +43,79 @@ Not intended for public/customer access.
 
 ## Running the App
 
-### Full Docker Setup (Recommended)
-
-From repository root:
+### Before you start
 
 ```bash
-# one-time network setup
+cp backend/.env.example backend/.env
+cp .env.example .env                    # compose-level — frontend Docker build
+cp frontend/.env.example frontend/.env.local  # optional; for local npm run dev
+```
+
+Set **staff keys** (same value in backend `.env`, compose `.env`, and frontend env). See root `README.md` for the full file map.
+
+| Credential | Variables | Purpose |
+| ---------- | --------- | ------- |
+| **Staff** | `STAFF_*` / `NEXT_PUBLIC_STAFF_*` | Ops UI + protected API routes |
+| **Logistics customer** | Stored in DB per customer | Webhooks from Collection apps — not in logistics backend `.env` |
+
+---
+
+### Full Docker Setup (first time)
+
+Logistics must be running before Collection setup. See root **`README.md`** for the full flow.
+
+```bash
 docker network create logistics_network
 
 cd logistics-app
-docker compose up --build
+docker compose up --build -d
 ```
 
 Services started:
 
 - **PostgreSQL** on `5433` (host)
-- **Backend API** on `5001` (host, container listens on `5000`)
-- **Frontend** on `3001` (host, container listens on `3000`)
+- **Backend API** on `5001`
+- **Frontend** on `3001`
 
 Open UI at: `http://localhost:3001`
 
-Stop/reset:
+Then start Collection and run root `npm run setup` (see `collection-app/README.md`).
+
+---
+
+### Daily re-up
 
 ```bash
-docker compose down
-docker compose down -v
+docker network create logistics_network 2>/dev/null || true
+cd logistics-app && docker compose up -d
+```
+
+No setup script needed for Logistics alone.
+
+---
+
+### Rebuild
+
+**Backend:**
+
+```bash
+docker compose up --build -d logistics_backend
+```
+
+**Frontend after staff key change:**
+
+```bash
+docker compose build --no-cache logistics_frontend
+docker compose up -d logistics_frontend
+```
+
+---
+
+### Stop / reset
+
+```bash
+docker compose down      # keep data
+docker compose down -v   # wipe database (requires re-running Collection npm run setup)
 ```
 
 ---
@@ -116,31 +164,78 @@ npm run dev
 
 ## Environment Variables
 
+### Docker Compose (`logistics-app/.env`)
+
+Auto-loaded by Compose for frontend **build args**.
+
+| Variable | Purpose |
+| -------- | ------- |
+| `NEXT_PUBLIC_STAFF_API_KEY` | Must match `STAFF_API_KEY` in backend `.env` |
+| `NEXT_PUBLIC_STAFF_SECRET_KEY` | Must match `STAFF_SECRET_KEY` in backend `.env` |
+
+Copy from `.env.example` in this directory.
+
+---
+
 ### Backend (`logistics-app/backend/.env`)
 
 | Variable       | Purpose |
 | -------------- | ------- |
-| `PORT`         | Backend HTTP port (default `5001`) |
-| `DATABASE_URL` | PostgreSQL connection string |
+| `PORT`             | Backend HTTP port (default `5001`) |
+| `DATABASE_URL`     | PostgreSQL connection string       |
+| `STAFF_API_KEY`    | Staff API key for protected routes |
+| `STAFF_SECRET_KEY` | Staff secret for request HMAC      |
 
-Example (safe placeholders only):
+Example (Docker):
 
 ```env
 PORT=5001
-DATABASE_URL=postgresql://<user>:<password>@localhost:5433/logistics_db
+DATABASE_URL=postgresql://postgres:postgres@logistics_db:5432/logistics_db
+STAFF_API_KEY=<shared-staff-key>
+STAFF_SECRET_KEY=<shared-staff-secret>
 ```
 
 ### Frontend (`logistics-app/frontend/.env.local`)
 
 | Variable              | Purpose |
 | --------------------- | ------- |
-| `NEXT_PUBLIC_API_URL` | Backend API base (include `/api`) |
+| `NEXT_PUBLIC_API_URL`          | Backend API base (include `/api`)  |
+| `NEXT_PUBLIC_STAFF_API_KEY`    | Staff API key (must match backend) |
+| `NEXT_PUBLIC_STAFF_SECRET_KEY` | Staff secret for HMAC signing      |
+
+Used for local `npm run dev`. Docker builds use `logistics-app/.env` instead.
 
 Example:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5001/api
+NEXT_PUBLIC_STAFF_API_KEY=<shared-staff-key>
+NEXT_PUBLIC_STAFF_SECRET_KEY=<shared-staff-secret>
 ```
+
+### Setup script (`setup/.env` at repo root)
+
+Required for `npm run setup` when registering Collection as a customer:
+
+```env
+LOGISTICS_URL=http://localhost:5001/api
+COLLECTION_WEBHOOK_URL=http://collection_backend:5000/api/raw-updates
+STAFF_API_KEY=<same-as-backend>
+STAFF_SECRET_KEY=<same-as-backend>
+```
+
+---
+
+## API authentication
+
+| Route group | Auth |
+| ----------- | ---- |
+| `GET /api/health` | Public |
+| Packages, bags, trucks, regions | Staff (`x-api-key` + `x-signature`) |
+| `POST /api/customers` | Staff (admin onboarding) |
+| `POST /api/webhooks/*`, `POST /api/etl/confirm` | Customer webhook HMAC (per registered Collection app) |
+
+`POST /api/customers` never returns `secretKey` in the response. Root `npm run setup` generates customer keys locally and sends them in the request body.
 
 ---
 
@@ -292,6 +387,12 @@ Retry strategy:
 ---
 
 ## Inter-Service Security
+
+### Staff routes (Phase 0)
+
+Ops UI routes require shared staff credentials (`STAFF_API_KEY` + HMAC signature). Same keys as Collection backend.
+
+### Webhook routes
 
 Inbound package webhook is protected by:
 

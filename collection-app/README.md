@@ -41,21 +41,42 @@ The front-office application of the Logistics Operations Hub. Used by staff to r
 
 ## Running the App
 
-### Full Docker Setup (Recommended)
+### Before you start
 
-From repository root:
+Create env files from examples and set **staff keys** (same value everywhere):
 
 ```bash
-# one-time network setup
+cp backend/.env.example backend/.env
+cp .env.example .env                    # compose-level — frontend Docker build
+cp frontend/.env.example frontend/.env  # optional; for local npm run dev
+```
+
+Also configure root `setup/.env` (see root `README.md`) before running `npm run setup`.
+
+| Credential | Variables | Purpose |
+| ---------- | --------- | ------- |
+| **Staff** | `STAFF_*` in backend, `NEXT_PUBLIC_STAFF_*` in compose `.env` / frontend | Ops UI + protected API routes |
+| **Logistics customer** | `LOGISTICS_API_KEY`, `LOGISTICS_SECRET_KEY` in backend only | Webhooks to/from Logistics — set by `npm run setup` |
+
+---
+
+### Full Docker Setup (first time)
+
+See root **`README.md`** for the complete checklist. Summary:
+
+```bash
+# from repo root — one-time
 docker network create logistics_network
 
-# start logistics first (required for webhook target)
-cd logistics-app
-docker compose up --build -d
+cd logistics-app && docker compose up --build -d
+until curl -sf http://localhost:5001/api/health >/dev/null; do sleep 2; done
 
-# start collection
-cd ../collection-app
-docker compose up --build -d
+cd ../collection-app && docker compose up --build -d
+
+cd ..
+npm install
+npm run setup   # skip if LOGISTICS_API_KEY=pk_... already in backend/.env
+docker compose -f collection-app/docker-compose.yml restart collection_backend
 ```
 
 Collection services:
@@ -64,13 +85,46 @@ Collection services:
 - **Backend API** on `5000`
 - **Frontend** on `3000`
 
-Then register this collection app as a customer in logistics:
+---
+
+### Daily re-up (already configured)
+
+When databases and credentials already exist:
 
 ```bash
-cd ..
-npm install
-npm run setup
-docker compose -f collection-app/docker-compose.yml restart collection_backend
+docker network create logistics_network 2>/dev/null || true
+cd logistics-app && docker compose up -d
+cd ../collection-app && docker compose up -d
+```
+
+Do **not** run `npm run setup` again unless you wiped the Logistics database.
+
+---
+
+### Rebuild
+
+**Backend code or `backend/.env`:**
+
+```bash
+cd collection-app
+docker compose up --build -d collection_backend
+# or: docker compose restart collection_backend
+```
+
+**Staff keys changed in `collection-app/.env`:**
+
+Frontends bake `NEXT_PUBLIC_*` at build time — rebuild without cache:
+
+```bash
+cd collection-app
+docker compose build --no-cache collection_frontend
+docker compose up -d collection_frontend
+```
+
+**After `npm run setup` updates `LOGISTICS_*`:**
+
+```bash
+docker compose restart collection_backend
 ```
 
 ---
@@ -119,6 +173,20 @@ npm run dev
 
 ## Environment Variables
 
+### Docker Compose (`collection-app/.env`)
+
+Auto-loaded by Compose for frontend **build args**. Required for Docker UI auth.
+
+| Variable | Purpose |
+| -------- | ------- |
+| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHA site key for track form |
+| `NEXT_PUBLIC_STAFF_API_KEY` | Must match `STAFF_API_KEY` in backend `.env` |
+| `NEXT_PUBLIC_STAFF_SECRET_KEY` | Must match `STAFF_SECRET_KEY` in backend `.env` |
+
+Copy from `.env.example` in this directory.
+
+---
+
 ### Backend (`collection-app/backend/.env`)
 
 | Variable               | Purpose                                       |
@@ -126,32 +194,54 @@ npm run dev
 | `PORT`                 | Backend HTTP port (default `5000`)            |
 | `DATABASE_URL`         | PostgreSQL connection string                  |
 | `API_URL`              | Logistics backend base URL                    |
-| `LOGISTICS_API_KEY`    | Customer API key issued by logistics          |
-| `LOGISTICS_SECRET_KEY` | Customer secret used for webhook HMAC signing |
+| `LOGISTICS_API_KEY`    | Customer API key for Collection ↔ Logistics webhooks (from `npm run setup`) |
+| `LOGISTICS_SECRET_KEY` | Customer secret for webhook HMAC signing (from `npm run setup`) |
+| `STAFF_API_KEY`        | Staff API key for protected ops routes (shared with Logistics app) |
+| `STAFF_SECRET_KEY`     | Staff secret for request HMAC signing (shared with Logistics app) |
 
-Example (safe placeholders only):
+Example (Docker):
 
 ```env
 PORT=5000
-DATABASE_URL=postgresql://<user>:<password>@localhost:5432/collection_db
-API_URL=http://localhost:5001/api
-LOGISTICS_API_KEY=<issued-by-logistics>
-LOGISTICS_SECRET_KEY=<issued-by-logistics>
+DATABASE_URL=postgresql://postgres:postgres@collection_db:5432/collection_db
+API_URL=http://logistics_backend:5001/api
+LOGISTICS_API_KEY=<from-npm-run-setup>
+LOGISTICS_SECRET_KEY=<from-npm-run-setup>
+STAFF_API_KEY=<shared-staff-key>
+STAFF_SECRET_KEY=<shared-staff-secret>
 ```
 
-### Frontend (`collection-app/frontend/.env.local`)
+### Frontend (`collection-app/frontend/.env` or `.env.local`)
 
 | Variable                         | Purpose                            |
 | -------------------------------- | ---------------------------------- |
 | `NEXT_PUBLIC_API_URL`            | Backend API base (include `/api`)  |
 | `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHA site key for track form  |
+| `NEXT_PUBLIC_STAFF_API_KEY`      | Staff API key (must match backend) |
+| `NEXT_PUBLIC_STAFF_SECRET_KEY`   | Staff secret for HMAC signing      |
+
+Used for local `npm run dev` only. Docker builds use `collection-app/.env` instead.
 
 Example:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=<your-site-key>
+NEXT_PUBLIC_STAFF_API_KEY=<shared-staff-key>
+NEXT_PUBLIC_STAFF_SECRET_KEY=<shared-staff-secret>
 ```
+
+---
+
+## API authentication
+
+| Route group | Auth |
+| ----------- | ---- |
+| `GET /health`, `POST /api/track` | Public (track is rate-limited) |
+| Packages, dashboard, regions | Staff (`x-api-key` + `x-signature`) |
+| `POST /api/raw-updates`, `/api/packages/raw-package-updates` | Customer webhook HMAC (`LOGISTICS_*`) |
+
+If the UI returns **401**, staff keys in the frontend Docker image do not match the backend. Rebuild `collection_frontend` with `--no-cache` after updating `collection-app/.env`.
 
 ---
 
@@ -207,17 +297,20 @@ Validation error shape:
 
 ### Create a Package — Example
 
+Requires staff auth headers. For manual testing, sign an empty body for GET or the JSON body for POST (see root `README.md`).
+
 ```bash
+# Generate signature (empty body for GET; use JSON string for POST)
+export STAFF_API_KEY=<your-staff-key>
+export STAFF_SECRET_KEY=<your-staff-secret>
+BODY='{"senderName":"Alice","receiverName":"Bob","fromAddress":"Chennai","toAddress":"Bengaluru","weight":2.5,"regionCode":"SOUTH"}'
+SIGN=$(node -e "const c=require('crypto'); console.log(c.createHmac('sha256', process.env.STAFF_SECRET_KEY).update(process.argv[1]).digest('hex'));" "$BODY")
+
 curl -X POST http://localhost:5000/api/packages \
   -H "Content-Type: application/json" \
-  -d '{
-    "senderName":"Alice",
-    "receiverName":"Bob",
-    "fromAddress":"Chennai",
-    "toAddress":"Bengaluru",
-    "weight":2.5,
-    "regionCode":"SOUTH"
-  }'
+  -H "x-api-key: $STAFF_API_KEY" \
+  -H "x-signature: $SIGN" \
+  -d "$BODY"
 ```
 
 ---
@@ -357,8 +450,8 @@ collection-app/
 ## Known Limitations
 
 - The backend checks only a `captchaVerified` flag (`0`/`1`) and does not verify captcha tokens server-side.
-- `/api/raw-updates` currently has no API-key/HMAC middleware.
-- Outbound package webhook to logistics does not use retry/backoff logic in the collection service.
+- Staff credentials are exposed to the browser in Phase 0 (`NEXT_PUBLIC_STAFF_*`); JWT + roles planned for Phase 2.
+- Outbound package webhook to logistics uses an outbox with retry; failures surface as sync status on the package.
 - Both `/api/raw-updates` and `/api/packages/raw-package-updates` exist for the same handler (duplicate ingestion routes).
 
 ---
