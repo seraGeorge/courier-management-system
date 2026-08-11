@@ -1,33 +1,39 @@
+import rateLimit from "express-rate-limit";
+import { Request, Response } from "express";
 import { buildResponse } from "@/utils/response";
-import { Request, Response, NextFunction } from "express";
 
-const WINDOW_MS = 60_000;
-const MAX_REQUESTS = 20;
+/**
+ * Rate limits tracking requests to prevent excessive requests from a client.
+ *
+ * Uses express-rate-limit to handle request counting, window expiration,
+ * and limit enforcement internally.
+ *
+ * Policy:
+ * - 10 requests per IP
+ * - 1-minute sliding/fixed window managed by the configured store
+ * - Returns HTTP 429 when the limit is exceeded
+ *
+ */
+export const rateLimitTrack = rateLimit({
+  windowMs: 60_000,
+  limit: 10,
 
-const hits = new Map<string, { count: number; resetAt: number }>();
+  standardHeaders: true,
+  legacyHeaders: false,
 
-export const rateLimitTrack = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  const key = req.ip ?? req.socket.remoteAddress ?? "unknown";
-  const now = Date.now();
-  const entry = hits.get(key);
+  keyGenerator: (req: Request) =>
+    req.ip ?? req.socket.remoteAddress ?? "unknown",
 
-  if (!entry || now >= entry.resetAt) {
-    hits.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    return next();
-  }
-
-  if (entry.count >= MAX_REQUESTS) {
+  handler: (_req: Request, res: Response) => {
     return res.status(429).json(
-      buildResponse(429, "Too many tracking requests. Please try again later.", null, {
-        code: "RATE_LIMITED",
-      }),
+      buildResponse(
+        429,
+        "Too many tracking requests. Please try again later.",
+        null,
+        {
+          code: "RATE_LIMITED",
+        },
+      ),
     );
-  }
-
-  entry.count += 1;
-  next();
-};
+  },
+});
