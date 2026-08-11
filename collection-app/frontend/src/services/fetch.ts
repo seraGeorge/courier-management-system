@@ -1,3 +1,5 @@
+import { getStaffAuthHeaders } from "@/utils/staffAuth";
+
 export interface FetchApiConfig {
   baseUrl: string;
   headers?: HeadersInit;
@@ -13,7 +15,7 @@ export enum ErrorCode {
 export interface ApiError {
   code: ErrorCode;
   fieldErrors?: FieldErrors;
-};
+}
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -21,21 +23,31 @@ export interface ApiResponse<T> {
   message: string;
   data: T | null;
   error: ApiError | null;
-};
+}
 
+interface RequestOptions extends RequestInit {
+  requiresAuth?: boolean;
+}
 
 class FetchApi {
   constructor(private config: FetchApiConfig) {}
 
   async request<T>(
     path: string,
-    options?: RequestInit,
+    options?: RequestOptions,
   ): Promise<ApiResponse<T>> {
+    const { requiresAuth = true, ...fetchOptions } = options ?? {};
+    const body =
+      typeof fetchOptions.body === "string" ? fetchOptions.body : "";
+    const authHeaders =
+      requiresAuth === false ? {} : await getStaffAuthHeaders(body);
+
     const response = await fetch(`${this.config.baseUrl}${path}`, {
-      ...options,
+      ...fetchOptions,
       headers: {
         ...this.config.headers,
-        ...options?.headers,
+        ...authHeaders,
+        ...fetchOptions.headers,
       },
     });
 
@@ -54,10 +66,11 @@ class FetchApi {
     });
   }
 
-  post<T, TBody>(path: string, body: TBody) {
+  post<T, TBody>(path: string, body: TBody, options?: { requiresAuth?: boolean }) {
     return this.request<T>(path, {
       method: "POST",
       body: JSON.stringify(body),
+      requiresAuth: options?.requiresAuth,
     });
   }
 

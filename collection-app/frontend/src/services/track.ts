@@ -7,5 +7,7 @@ export type TrackInput = {
 };
 
 export const trackPackage = async (data: TrackInput) => {
-  return API.post<TrackResult, TrackInput>("/track", data);
+  return API.post<TrackResult, TrackInput>("/track", data, {
+    requiresAuth: false,
+  });
 };

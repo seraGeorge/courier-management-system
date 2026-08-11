@@ -42,6 +42,8 @@ services:
       args:
         NEXT_PUBLIC_API_URL: http://localhost:5000/api
         NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${NEXT_PUBLIC_RECAPTCHA_SITE_KEY:-}
+        NEXT_PUBLIC_STAFF_API_KEY: ${NEXT_PUBLIC_STAFF_API_KEY:-}
+        NEXT_PUBLIC_STAFF_SECRET_KEY: ${NEXT_PUBLIC_STAFF_SECRET_KEY:-}
     container_name: collection_frontend
     restart: unless-stopped
     ports:
