@@ -1,4 +1,4 @@
-import { trackPackage } from "@/services/track.service";
+import { trackPackage, verifyRecaptcha } from "@/services/track.service";
 import { buildResponse } from "@/utils/response";
 import { TrackPackageSchema } from "@/validations/track";
 import { type Request, type Response } from "express";
@@ -15,9 +15,10 @@ export const track = async (req: Request, res: Response) => {
     );
   }
 
-  const { trackingId, captchaVerified } = result.data;
+  const { trackingId, captchaToken } = result.data;
+  const captchaValid = await verifyRecaptcha(captchaToken.toString());
 
-  if (!captchaVerified) {
+  if (!captchaValid) {
     return res.status(400).json(
       buildResponse(
         400,

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import axios from "axios";
 
 export const trackPackage = async (trackingId: string) => {
   const pkg = await prisma.package.findUnique({
@@ -35,4 +36,27 @@ export const trackPackage = async (trackingId: string) => {
   });
 
   return { ...pkg, history };
+};
+
+
+export const verifyRecaptcha = async (token: string): Promise<boolean> => {
+  console.log(process.env.RECAPTCHA_SECRET_KEY);
+  try {
+    const response = await axios.post(
+      "https://www.google.com/recaptcha/api/siteverify",
+      null,
+      {
+        params: {
+          secret: process.env.RECAPTCHA_SECRET_KEY,
+          response: token,
+        },
+      },
+    );
+    console.log("[Recaptcha] response:", response.data); // temporary
+
+    return response.data.success === true;
+  } catch (err) {
+    console.error("[Recaptcha] Verification request failed", err);
+    return false;
+  }
 };

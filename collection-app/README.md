@@ -449,7 +449,6 @@ collection-app/
 
 ## Known Limitations
 
-- The backend checks only a `captchaVerified` flag (`0`/`1`) and does not verify captcha tokens server-side.
 - Staff credentials are exposed to the browser in Phase 0 (`NEXT_PUBLIC_STAFF_*`); JWT + roles planned for Phase 2.
 - Outbound package webhook to logistics uses an outbox with retry; failures surface as sync status on the package.
 - Both `/api/raw-updates` and `/api/packages/raw-package-updates` exist for the same handler (duplicate ingestion routes).

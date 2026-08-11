@@ -45,7 +45,8 @@ function formatTrackDate(value: string) {
 }
 
 function formatDelayDuration(start: string, end: string | null) {
-  const diffMs = (end ? new Date(end) : new Date()).getTime() - new Date(start).getTime();
+  const diffMs =
+    (end ? new Date(end) : new Date()).getTime() - new Date(start).getTime();
   if (diffMs <= 0) return "Less than a minute";
 
   const totalMinutes = Math.floor(diffMs / 60000);
@@ -101,11 +102,14 @@ function extractDelayPeriods(result: TrackResult): DelayPeriod[] {
 function groupDelaysByStep(
   delays: DelayPeriod[],
 ): Partial<Record<TrackStep, DelayPeriod[]>> {
-  return delays.reduce<Partial<Record<TrackStep, DelayPeriod[]>>>((grouped, delay) => {
-    const existing = grouped[delay.duringStep] ?? [];
-    grouped[delay.duringStep] = [...existing, delay];
-    return grouped;
-  }, {});
+  return delays.reduce<Partial<Record<TrackStep, DelayPeriod[]>>>(
+    (grouped, delay) => {
+      const existing = grouped[delay.duringStep] ?? [];
+      grouped[delay.duringStep] = [...existing, delay];
+      return grouped;
+    },
+    {},
+  );
 }
 
 function formatDelayTiming(delay: DelayPeriod) {
@@ -170,7 +174,7 @@ export default function TrackPackageForm() {
     try {
       const response = await trackPackage({
         trackingId,
-        captchaVerified: captchaToken ? 1 : 0,
+        captchaToken,
       });
       setResult(response.data);
       resetCaptcha();
