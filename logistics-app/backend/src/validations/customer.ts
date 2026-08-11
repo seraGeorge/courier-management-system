@@ -8,4 +8,6 @@ export const CreateCustomerSchema = z.object({
     .refine((url) => url.startsWith("http://") || url.startsWith("https://"), {
       message: "Webhook URL must use HTTP or HTTPS",
     }),
+  apiKey: z.string().trim().min(1).optional(),
+  secretKey: z.string().trim().min(1).optional(),
 });

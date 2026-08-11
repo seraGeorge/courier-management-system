@@ -10,6 +10,8 @@ interface CreateCustomerRequest {
   name: string;
   email: string;
   webhookUrl: string;
+  apiKey?: string;
+  secretKey?: string;
 }
 
 export const createCustomer = async (data: CreateCustomerRequest) => {
@@ -20,13 +22,16 @@ export const createCustomer = async (data: CreateCustomerRequest) => {
   });
 
   if (existing) {
-    return existing;
+    throw new Error("CUSTOMER_ALREADY_EXISTS");
   }
+
   return prisma.customer.create({
     data: {
-      ...data,
-      apiKey: generateApiKey(),
-      secretKey: generateSecretKey(),
+      name: data.name,
+      email: data.email,
+      webhookUrl: data.webhookUrl,
+      apiKey: data.apiKey ?? generateApiKey(),
+      secretKey: data.secretKey ?? generateSecretKey(),
     },
   });
 };

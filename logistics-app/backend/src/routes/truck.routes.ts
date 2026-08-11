@@ -6,15 +6,16 @@ import {
   loadBag,
   updateTruckStatusController,
 } from "@/controllers/truck.controllers";
+import { verifyStaffAuth } from "@/middlewares/verifyStaffAuth";
 import { Router } from "express";
 
 const router = Router();
 
-router.post("/", addTruck);
-router.get("/", listTrucks);
-router.post("/load-bag", loadBag);
-router.post("/arrive", getArrivedTruckDetails);
-router.get("/:truckNumber", getTruckDetails);
-router.patch("/:truckNumber/status", updateTruckStatusController);
+router.post("/", verifyStaffAuth, addTruck);
+router.get("/", verifyStaffAuth, listTrucks);
+router.post("/load-bag", verifyStaffAuth, loadBag);
+router.post("/arrive", verifyStaffAuth, getArrivedTruckDetails);
+router.get("/:truckNumber", verifyStaffAuth, getTruckDetails);
+router.patch("/:truckNumber/status", verifyStaffAuth, updateTruckStatusController);
 
 export default router;

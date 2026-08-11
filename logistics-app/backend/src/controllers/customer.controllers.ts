@@ -1,7 +1,14 @@
 import { buildResponse } from "@/utils/response";
 import { CreateCustomerSchema } from "@/validations/customer";
-import {Request, Response} from "express";
+import { Request, Response } from "express";
 import { createCustomer as createCustomerService } from "@/services/customer.service";
+
+const omitSecretKey = <T extends { secretKey?: string }>(
+  customer: T,
+): Omit<T, "secretKey"> => {
+  const { secretKey: _secretKey, ...safe } = customer;
+  return safe;
+};
 
 export const createCustomer = async (req: Request, res: Response) => {
   try {
@@ -20,7 +27,13 @@ export const createCustomer = async (req: Request, res: Response) => {
 
     return res
       .status(201)
-      .json(buildResponse(201, "Customer created successfully", customer));
+      .json(
+        buildResponse(
+          201,
+          "Customer created successfully",
+          omitSecretKey(customer),
+        ),
+      );
   } catch (error) {
     console.error(error);
     if (error instanceof Error && error.message === "CUSTOMER_ALREADY_EXISTS") {
