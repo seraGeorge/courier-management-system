@@ -1,1 +1,6 @@
 /src/generated/prisma/
+
+# env files (keep *.example templates)
+.env
+.env.*
+!.env.example
