@@ -1,4 +1,5 @@
 import axios from "axios";
+import crypto from "node:crypto";
 import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
@@ -8,6 +9,8 @@ dotenv.config({ path: path.join(setupDir, ".env") });
 
 const LOGISTICS_URL = process.env.LOGISTICS_URL?.trim();
 const COLLECTION_WEBHOOK_URL = process.env.COLLECTION_WEBHOOK_URL?.trim();
+const STAFF_API_KEY = process.env.STAFF_API_KEY?.trim();
+const STAFF_SECRET_KEY = process.env.STAFF_SECRET_KEY?.trim();
 const envPath = path.join(process.cwd(), "collection-app", "backend", ".env");
 
 function requireEnv(name: string, value: string | undefined): string {
@@ -17,6 +20,18 @@ function requireEnv(name: string, value: string | undefined): string {
     );
   }
   return value;
+}
+
+function generateApiKey() {
+  return `pk_${crypto.randomBytes(24).toString("hex")}`;
+}
+
+function generateSecretKey() {
+  return `sk_${crypto.randomBytes(32).toString("hex")}`;
+}
+
+function generateSignature(payload: string, secret: string): string {
+  return crypto.createHmac("sha256", secret).update(payload).digest("hex");
 }
 
 async function waitForBackend(logisticsUrl: string) {
@@ -41,16 +56,35 @@ async function waitForBackend(logisticsUrl: string) {
   );
 }
 
-async function registerCustomer(logisticsUrl: string, webhookUrl: string) {
+async function registerCustomer(
+  logisticsUrl: string,
+  webhookUrl: string,
+  apiKey: string,
+  secretKey: string,
+  staffApiKey: string,
+  staffSecretKey: string,
+) {
   console.log("Registering Collection Application...");
 
-  const { data } = await axios.post(`${logisticsUrl}/customers`, {
+  const payload = {
     name: "Collection App",
     email: "collection@example.com",
     webhookUrl,
+    apiKey,
+    secretKey,
+  };
+  const body = JSON.stringify(payload);
+  const signature = generateSignature(body, staffSecretKey);
+
+  await axios.post(`${logisticsUrl}/customers`, payload, {
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": staffApiKey,
+      "x-signature": signature,
+    },
   });
 
-  return data.data;
+  return { apiKey, secretKey };
 }
 
 function updateEnv(apiKey: string, secretKey: string) {
@@ -78,6 +112,8 @@ async function main() {
       "COLLECTION_WEBHOOK_URL",
       COLLECTION_WEBHOOK_URL,
     );
+    const staffApiKey = requireEnv("STAFF_API_KEY", STAFF_API_KEY);
+    const staffSecretKey = requireEnv("STAFF_SECRET_KEY", STAFF_SECRET_KEY);
 
     if (!fs.existsSync(envPath)) {
       throw new Error(
@@ -87,16 +123,26 @@ async function main() {
 
     await waitForBackend(logisticsUrl);
 
-    const customer = await registerCustomer(logisticsUrl, webhookUrl);
+    const apiKey = generateApiKey();
+    const secretKey = generateSecretKey();
 
-    updateEnv(customer.apiKey, customer.secretKey);
+    await registerCustomer(
+      logisticsUrl,
+      webhookUrl,
+      apiKey,
+      secretKey,
+      staffApiKey,
+      staffSecretKey,
+    );
+
+    updateEnv(apiKey, secretKey);
 
     console.log("");
     console.log("==================================");
     console.log("Setup Complete");
     console.log("==================================");
-    console.log(`API Key    : ${customer.apiKey}`);
-    console.log(`Secret Key : ${customer.secretKey}`);
+    console.log(`API Key    : ${apiKey}`);
+    console.log(`Secret Key : ${secretKey}`);
     console.log("");
     console.log("Restart the Collection Backend:");
     console.log("");
