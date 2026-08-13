@@ -207,6 +207,11 @@ export default function TrackPackageForm() {
           serverMessage ||
             "We couldn't load the package timeline right now. Please try again in a moment.",
         );
+      } else if (code === ErrorCode.RATE_LIMITED) {
+        setError(
+          serverMessage ||
+            "You have reached the limit for tracking packages. Please try again in a moment.",
+        );
       } else {
         setError(
           "Unable to track this package right now. Check your connection and try again.",

@@ -11,6 +11,7 @@ export enum ErrorCode {
   PACKAGE_NOT_FOUND = "PACKAGE_NOT_FOUND",
   CAPTCHA_FAILED = "CAPTCHA_FAILED",
   INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
+  RATE_LIMITED = "RATE_LIMITED",
 }
 export interface ApiError {
   code: ErrorCode;
