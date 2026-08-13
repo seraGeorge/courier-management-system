@@ -11,6 +11,7 @@ import {
 import { buildResponse } from "@/utils/response";
 import { LoadBagToTruck, UpdateTruckStatusSchema } from "@/validations/truck";
 import type { Request, Response } from "express";
+import { InvalidTransitionError } from "@/lib/package-state-machine";
 
 export const addTruck = async (req: Request, res: Response) => {
   try {
@@ -68,6 +69,39 @@ export const loadBag = async (req: Request, res: Response) => {
       .status(200)
       .json(buildResponse(200, "Bag loaded to truck successfully", truckData));
   } catch (error) {
+    if (error instanceof InvalidTransitionError) {
+      return res.status(400).json(
+        buildResponse(400, "Invalid status transition", null, {
+          code: "INVALID_TRANSITION",
+          details: error.reason,
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "BAG_NOT_SEALED") {
+      return res.status(400).json(
+        buildResponse(400, "Bag must be sealed before loading", null, {
+          code: "BAG_NOT_SEALED",
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "TRUCK_NOT_FOUND") {
+      return res.status(404).json(
+        buildResponse(404, "Truck not found", null, {
+          code: "TRUCK_NOT_FOUND",
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "BAG_NOT_FOUND") {
+      return res.status(404).json(
+        buildResponse(404, "Bag not found", null, {
+          code: "BAG_NOT_FOUND",
+        }),
+      );
+    }
+
     return res.status(500).json(
       buildResponse(500, "Failed to load bag to truck", null, {
         code: "INTERNAL_SERVER_ERROR",
@@ -116,6 +150,23 @@ export const getArrivedTruckDetails = async (req: Request, res: Response) => {
       .status(200)
       .json(buildResponse(200, "Truck details retrieved successfully", truck));
   } catch (error) {
+    if (error instanceof InvalidTransitionError) {
+      return res.status(400).json(
+        buildResponse(400, "Invalid status transition", null, {
+          code: "INVALID_TRANSITION",
+          details: error.reason,
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "TRUCK_NOT_FOUND") {
+      return res.status(404).json(
+        buildResponse(404, "Truck not found", null, {
+          code: "TRUCK_NOT_FOUND",
+        }),
+      );
+    }
+
     return res.status(500).json(
       buildResponse(500, "Failed to retrieve truck details", null, {
         code: "INTERNAL_SERVER_ERROR",
@@ -152,6 +203,23 @@ export const updateTruckStatusController = async (
       .status(200)
       .json(buildResponse(200, "Truck status updated successfully", truck));
   } catch (error) {
+    if (error instanceof InvalidTransitionError) {
+      return res.status(400).json(
+        buildResponse(400, "Invalid status transition", null, {
+          code: "INVALID_TRANSITION",
+          details: error.reason,
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "TRUCK_NOT_FOUND") {
+      return res.status(404).json(
+        buildResponse(404, "Truck not found", null, {
+          code: "TRUCK_NOT_FOUND",
+        }),
+      );
+    }
+
     if (error instanceof Error && error.message === "DELAY_REASON_REQUIRED") {
       return res.status(400).json(
         buildResponse(400, "Delay reason is required when status is DELAYED", null, {

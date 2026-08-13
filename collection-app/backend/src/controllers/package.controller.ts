@@ -10,6 +10,7 @@ import {
 } from "@/validations/package";
 import { UpdatePackageStatusSchema } from "@/validations/update-package-status";
 import { type Request, type Response } from "express";
+import { InvalidTransitionError } from "@/lib/package-state-machine";
 
 export const listPackages = async (req: Request, res: Response) => {
   try {
@@ -112,6 +113,15 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
       );
   } catch (error) {
     console.error(error);
+
+    if (error instanceof InvalidTransitionError) {
+      return res.status(400).json(
+        buildResponse(400, "Invalid status transition", null, {
+          code: "INVALID_TRANSITION",
+          details: error.reason,
+        }),
+      );
+    }
 
     if (error instanceof Error && error.message === "PACKAGE_NOT_FOUND") {
       return res.status(404).json(

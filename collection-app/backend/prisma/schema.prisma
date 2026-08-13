@@ -59,6 +59,7 @@ model Package {
   region     Region @relation(fields: [regionCode], references: [code])
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   sale      Sale?
 }
 

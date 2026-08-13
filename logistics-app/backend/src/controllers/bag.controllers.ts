@@ -14,6 +14,7 @@ import {
 } from "@/validations/bag";
 import type { Request, Response } from "express";
 import { assignPackageToBag } from "@/services/bag.service";
+import { InvalidTransitionError } from "@/lib/package-state-machine";
 
 export const addBag = async (req: Request, res: Response) => {
   const newBag = await createBag();
@@ -31,12 +32,45 @@ export const addPackageToBag = async (req: Request, res: Response) => {
     );
   }
 
-  const updatedBag = await assignPackageToBag(result.data);
-  res
-    .status(200)
-    .json(
-      buildResponse(200, "Package assigned to bag successfully", updatedBag),
+  try {
+    const updatedBag = await assignPackageToBag(result.data);
+    res
+      .status(200)
+      .json(
+        buildResponse(200, "Package assigned to bag successfully", updatedBag),
+      );
+  } catch (error) {
+    if (error instanceof InvalidTransitionError) {
+      return res.status(400).json(
+        buildResponse(400, "Invalid status transition", null, {
+          code: "INVALID_TRANSITION",
+          details: error.reason,
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "BAG_NOT_FOUND") {
+      return res.status(404).json(
+        buildResponse(404, "Bag not found", null, {
+          code: "BAG_NOT_FOUND",
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "PACKAGE_NOT_FOUND") {
+      return res.status(404).json(
+        buildResponse(404, "Package not found", null, {
+          code: "PACKAGE_NOT_FOUND",
+        }),
+      );
+    }
+
+    return res.status(500).json(
+      buildResponse(500, "Failed to assign package to bag", null, {
+        code: "INTERNAL_SERVER_ERROR",
+      }),
     );
+  }
 };
 
 export const listBags = async (req: Request, res: Response) => {
@@ -122,6 +156,31 @@ export const delayBag = async (req: Request, res: Response) => {
       .status(200)
       .json(buildResponse(200, "Bag delayed successfully", bag));
   } catch (error) {
+    if (error instanceof InvalidTransitionError) {
+      return res.status(400).json(
+        buildResponse(400, "Invalid status transition", null, {
+          code: "INVALID_TRANSITION",
+          details: error.reason,
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "BAG_NOT_FOUND") {
+      return res.status(404).json(
+        buildResponse(404, "Bag not found", null, {
+          code: "BAG_NOT_FOUND",
+        }),
+      );
+    }
+
+    if (error instanceof Error && error.message === "EMPTY_BAG") {
+      return res.status(400).json(
+        buildResponse(400, "Cannot delay an empty bag", null, {
+          code: "EMPTY_BAG",
+        }),
+      );
+    }
+
     console.error(error);
     return res.status(500).json(
       buildResponse(500, "Failed to delay bag", null, {

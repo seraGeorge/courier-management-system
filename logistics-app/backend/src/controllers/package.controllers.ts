@@ -13,6 +13,7 @@ import {
 } from "@/validations/package";
 import type { Request, Response } from "express";
 import { CollectionPackageStatus } from "@/lib/package-status";
+import { InvalidTransitionError } from "@/lib/package-state-machine";
 
 export const listPackages = async (req: Request, res: Response) => {
   try {
@@ -107,6 +108,15 @@ export const receivePackageStatusWebhook = async (
   } catch (error) {
     console.error("STATUS WEBHOOK ERROR:", error);
 
+    if (error instanceof InvalidTransitionError) {
+      return res.status(400).json(
+        buildResponse(400, "Invalid status transition", null, {
+          code: "INVALID_TRANSITION",
+          details: error.reason,
+        }),
+      );
+    }
+
     if (error instanceof Error && error.message === "PACKAGE_NOT_FOUND") {
       return res.status(404).json(
         buildResponse(404, "Package not found", null, {
@@ -193,6 +203,15 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
         ),
       );
   } catch (error) {
+    if (error instanceof InvalidTransitionError) {
+      return res.status(400).json(
+        buildResponse(400, "Invalid status transition", null, {
+          code: "INVALID_TRANSITION",
+          details: error.reason,
+        }),
+      );
+    }
+
     if (error instanceof Error && error.message === "PACKAGE_NOT_FOUND") {
       return res.status(404).json(
         buildResponse(404, "Package not found", null, {

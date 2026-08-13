@@ -2,6 +2,10 @@ import { BagStatus } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import { PackageStatus } from "@shared/enums";
 import { AssignPackageToBagRequest } from "@shared/types/bag";
+import {
+  isValidLogisticsTransition,
+  InvalidTransitionError,
+} from "@/lib/package-state-machine";
 
 export const createBag = async () => {
   return prisma.bag.create({
@@ -31,6 +35,19 @@ export const assignPackageToBag = async (data: AssignPackageToBagRequest) => {
 
   if (!packageData) {
     throw new Error("PACKAGE_NOT_FOUND");
+  }
+
+  // Validate state machine transition
+  const validation = isValidLogisticsTransition(
+    packageData.status,
+    PackageStatus.ADDED_TO_BAG
+  );
+  if (!validation.valid) {
+    throw new InvalidTransitionError(
+      packageData.status,
+      PackageStatus.ADDED_TO_BAG,
+      `Cannot assign package ${trackingId} to bag: ${validation.reason || "Invalid transition"}`
+    );
   }
 
   const updatedPackageData = await prisma.package.update({
@@ -146,6 +163,8 @@ export const delayBagByNumber = async (data: {
         select: {
           id: true,
           customerId: true,
+          status: true,
+          trackingId: true,
         },
       },
     },
@@ -156,6 +175,18 @@ export const delayBagByNumber = async (data: {
   }
   if (bag.packages.length === 0) {
     throw new Error("EMPTY_BAG");
+  }
+
+  // Validate state machine transitions for all packages
+  for (const pkg of bag.packages) {
+    const validation = isValidLogisticsTransition(pkg.status, PackageStatus.DELAYED);
+    if (!validation.valid) {
+      throw new InvalidTransitionError(
+        pkg.status,
+        PackageStatus.DELAYED,
+        `Cannot delay package ${pkg.trackingId}: ${validation.reason || "Invalid transition"}`
+      );
+    }
   }
 
   return prisma.$transaction(async (tx) => {

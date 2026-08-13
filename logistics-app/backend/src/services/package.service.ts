@@ -6,6 +6,11 @@ import {
 import { prisma } from "@/lib/prisma";
 import { CreatePackageRequest } from "@shared/types";
 import { PackageStatus } from "@/generated/prisma/client";
+import {
+  isValidLogisticsTransition,
+  isEventStale,
+  InvalidTransitionError,
+} from "@/lib/package-state-machine";
 
 const resolveStatus = (statusParam: number): PackageStatus => {
   const packageStatus = StatusMap[statusParam as keyof typeof StatusMap];
@@ -128,11 +133,22 @@ export const updatePackageStatusByTrackingId = async (
     select: {
       id: true,
       customerId: true,
+      status: true,
     },
   });
 
   if (!existingPackage) {
     throw new Error("PACKAGE_NOT_FOUND");
+  }
+
+  // Validate state machine transition
+  const validation = isValidLogisticsTransition(existingPackage.status, status);
+  if (!validation.valid) {
+    throw new InvalidTransitionError(
+      existingPackage.status,
+      status,
+      validation.reason || "Unknown reason"
+    );
   }
 
   return prisma.$transaction(async (tx) => {

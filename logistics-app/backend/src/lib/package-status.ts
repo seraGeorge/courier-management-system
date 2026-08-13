@@ -53,3 +53,34 @@ export const CollectionToLogisticsAppStatusMap: Partial<
   DELIVERED: PackageStatus.DELIVERED,
   // PROCESSING / IN_TRANSIT are logistics aggregates — Collection must not set them.
 } as const;
+
+export const LOGISTICS_TRANSITIONS: Record<PackageStatus, PackageStatus[]> = {
+  [PackageStatus.TO_BE_PICKED_UP]: [PackageStatus.PICKED_UP],
+
+  [PackageStatus.PICKED_UP]: [PackageStatus.ADDED_TO_BAG],
+
+  [PackageStatus.ADDED_TO_BAG]: [PackageStatus.LOADED_ON_TRUCK],
+
+  [PackageStatus.LOADED_ON_TRUCK]: [PackageStatus.EN_ROUTE],
+
+  [PackageStatus.EN_ROUTE]: [
+    PackageStatus.ARRIVED_AT_REGION,
+    PackageStatus.DELAYED,
+  ],
+
+  [PackageStatus.ARRIVED_AT_REGION]: [
+    PackageStatus.SCHEDULED_FOR_DELIVERY,
+    PackageStatus.ADDED_TO_BAG, // multi-hop
+  ],
+
+  [PackageStatus.SCHEDULED_FOR_DELIVERY]: [PackageStatus.OUT_FOR_DELIVERY],
+
+  [PackageStatus.OUT_FOR_DELIVERY]: [PackageStatus.DELIVERED],
+
+  [PackageStatus.DELAYED]: [
+    PackageStatus.EN_ROUTE,
+    PackageStatus.ARRIVED_AT_REGION,
+  ],
+
+  [PackageStatus.DELIVERED]: [],
+};

@@ -5,6 +5,10 @@ import {
 } from "@/generated/prisma/browser";
 import { prisma } from "@/lib/prisma";
 import { LoadBagToTruckRequest, TruckResponse } from "@shared/types";
+import {
+  isValidLogisticsTransition,
+  InvalidTransitionError,
+} from "@/lib/package-state-machine";
 
 export const createTruck = async () => {
   return prisma.truck.create({
@@ -78,6 +82,22 @@ export const loadBagToTruck = async (data: LoadBagToTruckRequest) => {
       bagId: bag.id,
     },
   });
+
+  // Validate state machine transitions for all packages
+  for (const pkg of packages) {
+    const validation = isValidLogisticsTransition(
+      pkg.status,
+      PackageStatus.LOADED_ON_TRUCK
+    );
+    if (!validation.valid) {
+      throw new InvalidTransitionError(
+        pkg.status,
+        PackageStatus.LOADED_ON_TRUCK,
+        `Cannot load package ${pkg.trackingId}: ${validation.reason || "Invalid transition"}`
+      );
+    }
+  }
+
   return prisma.$transaction(async (tx) => {
     const truckBag = await tx.truckBag.create({
       data: {
@@ -162,6 +182,23 @@ export const getArrivedTruckDetailsByTruckNumber = async (
     throw new Error("TRUCK_NOT_FOUND");
   }
 
+  // Validate state machine transitions for all packages before making updates
+  for (const truckBag of truck.truckBags) {
+    for (const pkg of truckBag.bag.packages) {
+      const validation = isValidLogisticsTransition(
+        pkg.status,
+        PackageStatus.ARRIVED_AT_REGION
+      );
+      if (!validation.valid) {
+        throw new InvalidTransitionError(
+          pkg.status,
+          PackageStatus.ARRIVED_AT_REGION,
+          `Cannot mark package ${pkg.trackingId} as arrived: ${validation.reason || "Invalid transition"}`
+        );
+      }
+    }
+  }
+
   return prisma.$transaction(async (tx) => {
     // Update Truck status to ARRIVED
     await tx.truck.update({
@@ -174,7 +211,7 @@ export const getArrivedTruckDetailsByTruckNumber = async (
     });
 
     for (const truckBag of truck.truckBags) {
-      // Update Bag status to OPEN
+      // Update Bag status to COMPLETED
       await tx.bag.update({
         where: {
           id: truckBag.bag.id,
@@ -252,8 +289,33 @@ export const updateTruckStatus = async (
       select: {
         id: true,
         customerId: true,
+        status: true,
+        trackingId: true,
       },
     });
+
+    // Validate state machine transitions based on the target truck status
+    let targetPackageStatus: PackageStatus | null = null;
+    if (status === TruckStatus.ARRIVED) {
+      targetPackageStatus = PackageStatus.ARRIVED_AT_REGION;
+    } else if (status === TruckStatus.DELAYED) {
+      targetPackageStatus = PackageStatus.DELAYED;
+    } else if (status === TruckStatus.DEPARTED) {
+      targetPackageStatus = PackageStatus.EN_ROUTE;
+    }
+
+    if (targetPackageStatus) {
+      for (const pkg of packages) {
+        const validation = isValidLogisticsTransition(pkg.status, targetPackageStatus);
+        if (!validation.valid) {
+          throw new InvalidTransitionError(
+            pkg.status,
+            targetPackageStatus,
+            `Cannot update package ${pkg.trackingId}: ${validation.reason || "Invalid transition"}`
+          );
+        }
+      }
+    }
 
     await tx.truck.update({
       where: {

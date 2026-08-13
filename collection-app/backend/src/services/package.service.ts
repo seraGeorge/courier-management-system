@@ -10,6 +10,12 @@ import {
 } from "@/services/notifyLogistics.service";
 import { generateSignature } from "@/utils/hmac";
 import axios from "axios";
+import {
+  isValidCollectionTransition,
+  isEventStale,
+  InvalidTransitionError,
+  StaleEtlEventError,
+} from "@/lib/package-state-machine";
 
 const handlePrismaError = (error: unknown): never => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -22,6 +28,13 @@ const resolveStatus = (statusParam: number): PackageStatus => {
   const packageStatus = StatusMap[statusParam as keyof typeof StatusMap];
   if (!packageStatus) throw new Error("INVALID_STATUS");
   return packageStatus;
+};
+
+/**
+ * Map internal PackageStatus to CollectionPackageStatus for state machine validation.
+ */
+const toCollectionStatus = (status: PackageStatus): string => {
+  return status;
 };
 
 export const getPackages = async (
@@ -132,6 +145,18 @@ export const updatePackageStatus = async (
     throw new Error("PACKAGE_NOT_FOUND");
   }
 
+  // Validate state machine transition
+  const currentStatus = toCollectionStatus(packageData.status);
+  const newStatus = toCollectionStatus(packageStatus);
+  const validation = isValidCollectionTransition(
+    currentStatus as any,
+    newStatus as any,
+  );
+
+  if (!validation.valid) {
+    throw new InvalidTransitionError(currentStatus, newStatus, validation.reason || "Unknown reason");
+  }
+
   const shouldNotifyLogistics = COLLECTION_OWNED_STATUSES.has(packageStatus);
 
   return prisma
@@ -214,6 +239,11 @@ export const processRawUpdates = async () => {
     try {
       const existing = await prisma.package.findUnique({
         where: { trackingId: update.trackingId },
+        select: {
+          id: true,
+          status: true,
+          updatedAt: true,
+        },
       });
 
       if (!existing) {
@@ -222,6 +252,41 @@ export const processRawUpdates = async () => {
         // so we stop clogging the queue and can confirm back to Logistics.
         console.warn(
           `[ETL] Package not found for trackingId ${update.trackingId} (eventId ${update.eventId}) — marking applied and skipping.`,
+        );
+        await prisma.rawPackageUpdate.update({
+          where: { id: update.id },
+          data: { appliedAt: new Date() },
+        });
+        continue;
+      }
+
+      // Check if the ETL event is stale (occurred before current status was set)
+      if (update.receivedAt) {
+        if (isEventStale(update.receivedAt, existing.updatedAt)) {
+          console.warn(
+            `[ETL] Event stale for trackingId ${update.trackingId} (eventId ${update.eventId}): ` +
+            `occurred at ${update.receivedAt.toISOString()} but status set at ${existing.updatedAt.toISOString()} — skipping.`,
+          );
+          await prisma.rawPackageUpdate.update({
+            where: { id: update.id },
+            data: { appliedAt: new Date() },
+          });
+          continue;
+        }
+      }
+
+      // Validate state machine transition
+      const currentStatus = toCollectionStatus(existing.status);
+      const newStatus = toCollectionStatus(update.status);
+      const validation = isValidCollectionTransition(
+        currentStatus as any,
+        newStatus as any,
+      );
+
+      if (!validation.valid) {
+        console.error(
+          `[ETL] Invalid transition for trackingId ${update.trackingId} (eventId ${update.eventId}): ` +
+          `${validation.reason} — skipping and marking applied.`,
         );
         await prisma.rawPackageUpdate.update({
           where: { id: update.id },
