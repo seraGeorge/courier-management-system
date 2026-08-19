@@ -87,13 +87,13 @@ export const loadBagToTruck = async (data: LoadBagToTruckRequest) => {
   for (const pkg of packages) {
     const validation = isValidLogisticsTransition(
       pkg.status,
-      PackageStatus.LOADED_ON_TRUCK
+      PackageStatus.LOADED_ON_TRUCK,
     );
     if (!validation.valid) {
       throw new InvalidTransitionError(
         pkg.status,
         PackageStatus.LOADED_ON_TRUCK,
-        `Cannot load package ${pkg.trackingId}: ${validation.reason || "Invalid transition"}`
+        `Cannot load package ${pkg.trackingId}: ${validation.reason || "Invalid transition"}`,
       );
     }
   }
@@ -187,13 +187,13 @@ export const getArrivedTruckDetailsByTruckNumber = async (
     for (const pkg of truckBag.bag.packages) {
       const validation = isValidLogisticsTransition(
         pkg.status,
-        PackageStatus.ARRIVED_AT_REGION
+        PackageStatus.ARRIVED_AT_REGION,
       );
       if (!validation.valid) {
         throw new InvalidTransitionError(
           pkg.status,
           PackageStatus.ARRIVED_AT_REGION,
-          `Cannot mark package ${pkg.trackingId} as arrived: ${validation.reason || "Invalid transition"}`
+          `Cannot mark package ${pkg.trackingId} as arrived: ${validation.reason || "Invalid transition"}`,
         );
       }
     }
@@ -306,12 +306,15 @@ export const updateTruckStatus = async (
 
     if (targetPackageStatus) {
       for (const pkg of packages) {
-        const validation = isValidLogisticsTransition(pkg.status, targetPackageStatus);
+        const validation = isValidLogisticsTransition(
+          pkg.status,
+          targetPackageStatus,
+        );
         if (!validation.valid) {
           throw new InvalidTransitionError(
             pkg.status,
             targetPackageStatus,
-            `Cannot update package ${pkg.trackingId}: ${validation.reason || "Invalid transition"}`
+            `Cannot update package ${pkg.trackingId}: ${validation.reason || "Invalid transition"}`,
           );
         }
       }

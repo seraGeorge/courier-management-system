@@ -125,7 +125,10 @@ export const receivePackageStatusWebhook = async (
       );
     }
 
-    if (error instanceof Error && error.message === "UNMAPPED_COLLECTION_STATUS") {
+    if (
+      error instanceof Error &&
+      error.message === "UNMAPPED_COLLECTION_STATUS"
+    ) {
       return res.status(400).json(
         buildResponse(400, "Status cannot be mapped to logistics", null, {
           code: "UNMAPPED_COLLECTION_STATUS",
@@ -134,14 +137,16 @@ export const receivePackageStatusWebhook = async (
     }
 
     if (error instanceof Error && error.message === "DELAY_REASON_REQUIRED") {
-      return res.status(400).json(
-        buildResponse(
-          400,
-          "Delay reason is required when status is DELAYED",
-          null,
-          { code: "DELAY_REASON_REQUIRED" },
-        ),
-      );
+      return res
+        .status(400)
+        .json(
+          buildResponse(
+            400,
+            "Delay reason is required when status is DELAYED",
+            null,
+            { code: "DELAY_REASON_REQUIRED" },
+          ),
+        );
     }
 
     return res.status(500).json(
@@ -222,9 +227,14 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
 
     if (error instanceof Error && error.message === "DELAY_REASON_REQUIRED") {
       return res.status(400).json(
-        buildResponse(400, "Delay reason is required when status is DELAYED", null, {
-          code: "DELAY_REASON_REQUIRED",
-        }),
+        buildResponse(
+          400,
+          "Delay reason is required when status is DELAYED",
+          null,
+          {
+            code: "DELAY_REASON_REQUIRED",
+          },
+        ),
       );
     }
 

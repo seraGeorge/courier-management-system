@@ -30,14 +30,14 @@ export const addTruck = async (req: Request, res: Response) => {
 
 export const listTrucks = async (req: Request, res: Response) => {
   try {
-  const raw = req.query.status;
+    const raw = req.query.status;
 
-  const status =
-    typeof raw === "string"
-      ? raw.includes(",")
-        ? (raw.split(",") as TruckStatus[])
-        : (raw as TruckStatus)
-      : undefined;
+    const status =
+      typeof raw === "string"
+        ? raw.includes(",")
+          ? (raw.split(",") as TruckStatus[])
+          : (raw as TruckStatus)
+        : undefined;
 
     const trucks = await getTrucks(status);
     return res
@@ -222,9 +222,14 @@ export const updateTruckStatusController = async (
 
     if (error instanceof Error && error.message === "DELAY_REASON_REQUIRED") {
       return res.status(400).json(
-        buildResponse(400, "Delay reason is required when status is DELAYED", null, {
-          code: "DELAY_REASON_REQUIRED",
-        }),
+        buildResponse(
+          400,
+          "Delay reason is required when status is DELAYED",
+          null,
+          {
+            code: "DELAY_REASON_REQUIRED",
+          },
+        ),
       );
     }
 

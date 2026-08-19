@@ -147,7 +147,7 @@ export const updatePackageStatusByTrackingId = async (
     throw new InvalidTransitionError(
       existingPackage.status,
       status,
-      validation.reason || "Unknown reason"
+      validation.reason || "Unknown reason",
     );
   }
 
@@ -165,8 +165,7 @@ export const updatePackageStatusByTrackingId = async (
       data: {
         packageId: existingPackage.id,
         status,
-        remarks:
-          status === PackageStatus.DELAYED ? delayReason!.trim() : null,
+        remarks: status === PackageStatus.DELAYED ? delayReason!.trim() : null,
         customerId: existingPackage.customerId,
         // Status originated in Collection — already applied there; skip ETL echo.
         processed: options?.markHistoryProcessed ?? false,

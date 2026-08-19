@@ -29,6 +29,7 @@ enum SyncStatus {
   SYNCED
   FAILED
 }
+
 model Region {
   id        String   @id @default(uuid())
   code      String   @unique

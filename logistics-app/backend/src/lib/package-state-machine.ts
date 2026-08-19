@@ -3,7 +3,7 @@ import { LOGISTICS_TRANSITIONS } from "./package-status";
 
 /**
  * Package State Machine
- * 
+ *
  * Defines valid state transitions for package statuses across Collection and Logistics apps.
  * Enforces strict rules:
  * - No regressions (e.g., DELIVERED → IN_TRANSIT forbidden)
@@ -22,10 +22,10 @@ function buildLogisticsValidTransitions(): Record<
   const transitions: Record<PackageStatus, Set<PackageStatus>> = {} as any;
 
   for (const [currentStatus, nextStates] of Object.entries(
-    LOGISTICS_TRANSITIONS
+    LOGISTICS_TRANSITIONS,
   )) {
     transitions[currentStatus as PackageStatus] = new Set(
-      nextStates as PackageStatus[]
+      nextStates as PackageStatus[],
     );
   }
 
@@ -62,40 +62,25 @@ export const COLLECTION_VALID_TRANSITIONS: Record<
   Set<CollectionPackageStatus>
 > = {
   // Initial state
-  ["TO_BE_PICKED_UP"]: new Set([
-    "PICKED_UP",
-  ]),
+  ["TO_BE_PICKED_UP"]: new Set(["PICKED_UP"]),
 
   // Pickup stage
-  ["PICKED_UP"]: new Set([
-    "PROCESSING",
-  ]),
+  ["PICKED_UP"]: new Set(["PROCESSING"]),
 
   // Aggregate of ADDED_TO_BAG + LOADED_ON_TRUCK
-  ["PROCESSING"]: new Set([
-    "IN_TRANSIT",
-  ]),
+  ["PROCESSING"]: new Set(["IN_TRANSIT"]),
 
   // Aggregate of EN_ROUTE + ARRIVED_AT_REGION
-  ["IN_TRANSIT"]: new Set([
-    "SCHEDULED_FOR_DELIVERY",
-    "DELAYED",
-  ]),
+  ["IN_TRANSIT"]: new Set(["SCHEDULED_FOR_DELIVERY", "DELAYED"]),
 
   // Final mile scheduling (Collection owns)
-  ["SCHEDULED_FOR_DELIVERY"]: new Set([
-    "OUT_FOR_DELIVERY",
-  ]),
+  ["SCHEDULED_FOR_DELIVERY"]: new Set(["OUT_FOR_DELIVERY"]),
 
   // Final delivery attempt (Collection owns)
-  ["OUT_FOR_DELIVERY"]: new Set([
-    "DELIVERED",
-  ]),
+  ["OUT_FOR_DELIVERY"]: new Set(["DELIVERED"]),
 
   // DELAYED overlay — can resolve to IN_TRANSIT only
-  ["DELAYED"]: new Set([
-    "IN_TRANSIT",
-  ]),
+  ["DELAYED"]: new Set(["IN_TRANSIT"]),
 
   // Terminal
   ["DELIVERED"]: new Set(),
@@ -186,7 +171,9 @@ export class InvalidTransitionError extends Error {
     public readonly newStatus: string,
     public readonly reason: string,
   ) {
-    super(`Invalid transition: ${currentStatus} → ${newStatus}. Reason: ${reason}`);
+    super(
+      `Invalid transition: ${currentStatus} → ${newStatus}. Reason: ${reason}`,
+    );
     this.name = "InvalidTransitionError";
   }
 }
@@ -200,7 +187,7 @@ export class StaleEtlEventError extends Error {
     public readonly currentStatusAt: Date,
   ) {
     super(
-      `ETL event occurred at ${eventOccurredAt.toISOString()} but current status was set at ${currentStatusAt.toISOString()}`
+      `ETL event occurred at ${eventOccurredAt.toISOString()} but current status was set at ${currentStatusAt.toISOString()}`,
     );
     this.name = "StaleEtlEventError";
   }

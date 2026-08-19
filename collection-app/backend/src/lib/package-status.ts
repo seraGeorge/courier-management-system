@@ -1,6 +1,6 @@
 /**
  * Collection Package Status Constants
- * 
+ *
  * Defines status mappings and valid transitions for the Collection app.
  */
 
@@ -32,10 +32,7 @@ export const COLLECTION_TRANSITIONS: Record<
   ["PROCESSING"]: ["IN_TRANSIT"],
 
   // Aggregate of EN_ROUTE + ARRIVED_AT_REGION
-  ["IN_TRANSIT"]: [
-    "SCHEDULED_FOR_DELIVERY",
-    "DELAYED",
-  ],
+  ["IN_TRANSIT"]: ["SCHEDULED_FOR_DELIVERY", "DELAYED"],
 
   // Final mile scheduling (Collection owns)
   ["SCHEDULED_FOR_DELIVERY"]: ["OUT_FOR_DELIVERY"],

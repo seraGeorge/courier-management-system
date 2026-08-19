@@ -99,29 +99,31 @@ export const createPackage = async (data: {
     trackingId: data.trackingId,
   };
 
-  return prisma.$transaction(async (tx) => {
-    const newPackage = await tx.package.create({
-      data: {
-        ...data,
-        syncStatus: SyncStatus.PENDING,
-        sale: { create: { amount: calculateAmount(data.weight) } },
-      },
-      include: {
-        sale: true,
-        region: { select: { code: true, name: true } },
-      },
-    });
+  return prisma
+    .$transaction(async (tx) => {
+      const newPackage = await tx.package.create({
+        data: {
+          ...data,
+          syncStatus: SyncStatus.PENDING,
+          sale: { create: { amount: calculateAmount(data.weight) } },
+        },
+        include: {
+          sale: true,
+          region: { select: { code: true, name: true } },
+        },
+      });
 
-    await tx.outboundWebhook.create({
-      data: {
-        eventType: PACKAGE_CREATED_EVENT,
-        payload: webhookPayload,
-        trackingId: data.trackingId,
-      },
-    });
+      await tx.outboundWebhook.create({
+        data: {
+          eventType: PACKAGE_CREATED_EVENT,
+          payload: webhookPayload,
+          trackingId: data.trackingId,
+        },
+      });
 
-    return newPackage;
-  }).catch(handlePrismaError);
+      return newPackage;
+    })
+    .catch(handlePrismaError);
 };
 
 export const updatePackageStatus = async (
@@ -154,7 +156,11 @@ export const updatePackageStatus = async (
   );
 
   if (!validation.valid) {
-    throw new InvalidTransitionError(currentStatus, newStatus, validation.reason || "Unknown reason");
+    throw new InvalidTransitionError(
+      currentStatus,
+      newStatus,
+      validation.reason || "Unknown reason",
+    );
   }
 
   const shouldNotifyLogistics = COLLECTION_OWNED_STATUSES.has(packageStatus);
@@ -183,7 +189,7 @@ export const updatePackageStatus = async (
               status: packageStatus,
               delayReason:
                 packageStatus === PackageStatus.DELAYED
-                  ? delayReason ?? null
+                  ? (delayReason ?? null)
                   : null,
             },
           },
@@ -215,7 +221,8 @@ export const createRawPackageUpdates = async (data: {
       eventId: u.eventId,
       trackingId: u.trackingId,
       status: u.status,
-      delayReason: u.status === PackageStatus.DELAYED ? u.delayReason ?? null : null,
+      delayReason:
+        u.status === PackageStatus.DELAYED ? (u.delayReason ?? null) : null,
       receivedAt: u.occurredAt ? new Date(u.occurredAt) : undefined,
     })),
     skipDuplicates: true,
@@ -265,7 +272,7 @@ export const processRawUpdates = async () => {
         if (isEventStale(update.receivedAt, existing.updatedAt)) {
           console.warn(
             `[ETL] Event stale for trackingId ${update.trackingId} (eventId ${update.eventId}): ` +
-            `occurred at ${update.receivedAt.toISOString()} but status set at ${existing.updatedAt.toISOString()} — skipping.`,
+              `occurred at ${update.receivedAt.toISOString()} but status set at ${existing.updatedAt.toISOString()} — skipping.`,
           );
           await prisma.rawPackageUpdate.update({
             where: { id: update.id },
@@ -286,7 +293,7 @@ export const processRawUpdates = async () => {
       if (!validation.valid) {
         console.error(
           `[ETL] Invalid transition for trackingId ${update.trackingId} (eventId ${update.eventId}): ` +
-          `${validation.reason} — skipping and marking applied.`,
+            `${validation.reason} — skipping and marking applied.`,
         );
         await prisma.rawPackageUpdate.update({
           where: { id: update.id },

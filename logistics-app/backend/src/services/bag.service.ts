@@ -40,13 +40,13 @@ export const assignPackageToBag = async (data: AssignPackageToBagRequest) => {
   // Validate state machine transition
   const validation = isValidLogisticsTransition(
     packageData.status,
-    PackageStatus.ADDED_TO_BAG
+    PackageStatus.ADDED_TO_BAG,
   );
   if (!validation.valid) {
     throw new InvalidTransitionError(
       packageData.status,
       PackageStatus.ADDED_TO_BAG,
-      `Cannot assign package ${trackingId} to bag: ${validation.reason || "Invalid transition"}`
+      `Cannot assign package ${trackingId} to bag: ${validation.reason || "Invalid transition"}`,
     );
   }
 
@@ -179,12 +179,15 @@ export const delayBagByNumber = async (data: {
 
   // Validate state machine transitions for all packages
   for (const pkg of bag.packages) {
-    const validation = isValidLogisticsTransition(pkg.status, PackageStatus.DELAYED);
+    const validation = isValidLogisticsTransition(
+      pkg.status,
+      PackageStatus.DELAYED,
+    );
     if (!validation.valid) {
       throw new InvalidTransitionError(
         pkg.status,
         PackageStatus.DELAYED,
-        `Cannot delay package ${pkg.trackingId}: ${validation.reason || "Invalid transition"}`
+        `Cannot delay package ${pkg.trackingId}: ${validation.reason || "Invalid transition"}`,
       );
     }
   }

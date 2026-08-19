@@ -5,9 +5,7 @@ import {
   createRawPackageUpdates,
 } from "@/services/package.service";
 import { buildResponse } from "@/utils/response";
-import {
-  CreatePackageSchema,
-} from "@/validations/package";
+import { CreatePackageSchema } from "@/validations/package";
 import { UpdatePackageStatusSchema } from "@/validations/update-package-status";
 import { type Request, type Response } from "express";
 import { InvalidTransitionError } from "@/lib/package-state-machine";
@@ -138,6 +136,3 @@ export const patchPackageStatus = async (req: Request, res: Response) => {
     );
   }
 };
-
-
-

@@ -1,12 +1,15 @@
 import { PackageStatus } from "@/generated/prisma/client";
-import { COLLECTION_TRANSITIONS, type CollectionPackageStatus } from "./package-status";
+import {
+  COLLECTION_TRANSITIONS,
+  type CollectionPackageStatus,
+} from "./package-status";
 
 // Re-export for backward compatibility
 export type { CollectionPackageStatus } from "./package-status";
 
 /**
  * Package State Machine for Collection App
- * 
+ *
  * Defines valid state transitions for package statuses in Collection context.
  * Derived from COLLECTION_TRANSITIONS constant in package-status.ts
  */
@@ -25,10 +28,10 @@ function buildCollectionValidTransitions(): Record<
   > = {} as any;
 
   for (const [currentStatus, nextStates] of Object.entries(
-    COLLECTION_TRANSITIONS
+    COLLECTION_TRANSITIONS,
   )) {
     transitions[currentStatus as CollectionPackageStatus] = new Set(
-      nextStates as CollectionPackageStatus[]
+      nextStates as CollectionPackageStatus[],
     );
   }
 
@@ -40,8 +43,7 @@ function buildCollectionValidTransitions(): Record<
  * Collection can only directly transition certain customer-facing states.
  * Derived from COLLECTION_TRANSITIONS in package-status.ts
  */
-export const COLLECTION_VALID_TRANSITIONS =
-  buildCollectionValidTransitions();
+export const COLLECTION_VALID_TRANSITIONS = buildCollectionValidTransitions();
 
 /**
  * Validation result returned by transition checks.
@@ -94,7 +96,9 @@ export class InvalidTransitionError extends Error {
     public readonly newStatus: string,
     public readonly reason: string,
   ) {
-    super(`Invalid transition: ${currentStatus} → ${newStatus}. Reason: ${reason}`);
+    super(
+      `Invalid transition: ${currentStatus} → ${newStatus}. Reason: ${reason}`,
+    );
     this.name = "InvalidTransitionError";
   }
 }
@@ -108,7 +112,7 @@ export class StaleEtlEventError extends Error {
     public readonly currentStatusAt: Date,
   ) {
     super(
-      `ETL event occurred at ${eventOccurredAt.toISOString()} but current status was set at ${currentStatusAt.toISOString()}`
+      `ETL event occurred at ${eventOccurredAt.toISOString()} but current status was set at ${currentStatusAt.toISOString()}`,
     );
     this.name = "StaleEtlEventError";
   }
