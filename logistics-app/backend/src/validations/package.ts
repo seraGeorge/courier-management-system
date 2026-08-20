@@ -41,6 +41,7 @@ export const CollectionPackageStatusUpdateSchema = z
       "DELIVERED",
     ]),
     delayReason: z.string().optional().nullable(),
+    sourceEventId: z.string().optional(), // Idempotency key
   })
   .refine(
     (data) =>

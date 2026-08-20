@@ -177,7 +177,11 @@ model PackageStatusHistory {
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id])
 
+  // Idempotency: track source event to prevent duplicate history on webhook retry
+  sourceEventId String?
+
   @@index([processed, customerId])
+  @@unique([packageId, sourceEventId])
 }
 
 model EtlCheckpoint {

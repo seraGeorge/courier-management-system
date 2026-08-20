@@ -15,6 +15,7 @@ export type PackageStatusUpdatedPayload = {
   trackingId: string;
   status: PackageStatus;
   delayReason?: string | null;
+  sourceEventId?: string; // Idempotency key for deduplication
 };
 
 const getWebhookBaseUrl = () => {
@@ -58,9 +59,12 @@ export const deliverPackageCreatedWebhook = async (
 };
 
 export const deliverPackageStatusUpdatedWebhook = async (
+  eventId: string,
   payload: PackageStatusUpdatedPayload,
 ) => {
-  await postSignedWebhook(getPackageStatusWebhookUrl(), payload);
+  // Inject sourceEventId for idempotency
+  const payloadWithEventId = { ...payload, sourceEventId: eventId };
+  await postSignedWebhook(getPackageStatusWebhookUrl(), payloadWithEventId);
 };
 
 const isRetryableError = (error: unknown) => {
@@ -104,6 +108,7 @@ export const processOutboundWebhooks = async () => {
         );
       } else if (event.eventType === PACKAGE_STATUS_UPDATED_EVENT) {
         await deliverPackageStatusUpdatedWebhook(
+          event.id, // Pass event ID for idempotency
           event.payload as PackageStatusUpdatedPayload,
         );
       } else {

@@ -122,7 +122,7 @@ export const updatePackageStatusByTrackingId = async (
   trackingId: string,
   status: PackageStatus,
   delayReason?: string,
-  options?: { markHistoryProcessed?: boolean },
+  options?: { markHistoryProcessed?: boolean; sourceEventId?: string },
 ) => {
   if (status === PackageStatus.DELAYED && !delayReason?.trim()) {
     throw new Error("DELAY_REASON_REQUIRED");
@@ -139,6 +139,25 @@ export const updatePackageStatusByTrackingId = async (
 
   if (!existingPackage) {
     throw new Error("PACKAGE_NOT_FOUND");
+  }
+
+  // Idempotency check: if sourceEventId provided, check if already processed
+  if (options?.sourceEventId) {
+    const existingHistory = await prisma.packageStatusHistory.findUnique({
+      where: {
+        packageId_sourceEventId: {
+          packageId: existingPackage.id,
+          sourceEventId: options.sourceEventId,
+        },
+      },
+    });
+
+    if (existingHistory) {
+      // Already processed this event - return current package state (idempotent)
+      return prisma.package.findUniqueOrThrow({
+        where: { trackingId },
+      });
+    }
   }
 
   // Validate state machine transition
@@ -169,6 +188,7 @@ export const updatePackageStatusByTrackingId = async (
         customerId: existingPackage.customerId,
         // Status originated in Collection — already applied there; skip ETL echo.
         processed: options?.markHistoryProcessed ?? false,
+        sourceEventId: options?.sourceEventId,
       },
     });
 
@@ -180,6 +200,7 @@ export const updatePackageStatusFromCollection = async (
   trackingId: string,
   collectionStatus: CollectionPackageStatus,
   delayReason?: string | null,
+  sourceEventId?: string,
 ) => {
   const logisticsStatus = CollectionToLogisticsAppStatusMap[collectionStatus];
   if (!logisticsStatus) {
@@ -190,6 +211,6 @@ export const updatePackageStatusFromCollection = async (
     trackingId,
     logisticsStatus,
     delayReason ?? undefined,
-    { markHistoryProcessed: true },
+    { markHistoryProcessed: true, sourceEventId },
   );
 };

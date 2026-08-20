@@ -94,6 +94,7 @@ export const receivePackageStatusWebhook = async (
       result.data.trackingId,
       result.data.status as CollectionPackageStatus,
       result.data.delayReason,
+      result.data.sourceEventId, // Pass idempotency key
     );
 
     return res
