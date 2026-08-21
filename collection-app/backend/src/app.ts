@@ -1,11 +1,20 @@
 import "dotenv/config";
 import express, { Request } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import router from "./routes";
 import { startRawUpdateProcessorJob } from "@/jobs/rawUpdateProcessorJob";
 import { startOutboundWebhookProcessorJob } from "@/jobs/outboundWebhookProcessorJob";
 
 const app = express();
+
+// Security middleware
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 
 // CORS Configuration
 const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";

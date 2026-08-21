@@ -1,10 +1,19 @@
 import "dotenv/config";
 import express, { Request } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import router from "./routes";
 import "@/jobs/push-status-updates";
 
 const app = express();
+
+// Security middleware
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 
 // CORS Configuration
 const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3001";
