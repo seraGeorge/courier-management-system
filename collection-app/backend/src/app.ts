@@ -6,7 +6,23 @@ import { startRawUpdateProcessorJob } from "@/jobs/rawUpdateProcessorJob";
 import { startOutboundWebhookProcessorJob } from "@/jobs/outboundWebhookProcessorJob";
 
 const app = express();
-app.use(cors());
+
+// CORS Configuration
+const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
+
+app.use(
+  cors({
+    origin: corsOrigin,
+    credentials: true,
+    methods: ["GET", "POST", "PATCH", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-API-Key",
+      "X-Signature",
+    ],
+  }),
+);
 app.use(
   express.json({
     verify: (req, _res, buf) => {

@@ -6,7 +6,22 @@ import "@/jobs/push-status-updates";
 
 const app = express();
 
-app.use(cors());
+// CORS Configuration
+const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3001";
+
+app.use(
+  cors({
+    origin: corsOrigin,
+    credentials: true,
+    methods: ["GET", "POST", "PATCH", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-API-Key",
+      "X-Signature",
+    ],
+  }),
+);
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -14,8 +29,6 @@ app.use(
     },
   }),
 );
-
-
 
 app.use("/api", router);
 app.use((req, res) => {
