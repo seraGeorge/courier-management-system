@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { Request } from "express";
+import { connectRedis } from "@/config/redis";
 import cors from "cors";
 import helmet from "helmet";
 import router from "./routes";
@@ -45,6 +46,12 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log("Server running on port 5001");
-});
+
+async function startServer() {
+  await connectRedis();
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+startServer();
